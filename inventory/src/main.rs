@@ -1,13 +1,21 @@
+#![feature(proc_macro_hygiene, decl_macro)]
+#[macro_use] extern crate rocket;
+
+
 mod inventory;
 mod player;
 mod item;
+mod back;
+
 
 use crate::inventory::Inventory;
 use crate::item::Item;
 
 fn main() {
-    let inventory = Inventory::new();
-    inventory.test();
+
+    back::rocket();
+    // let inventory = Inventory::new();
+    // inventory.test();
 
     // inventory.deposit([9, 83, 151]);
 

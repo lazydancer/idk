@@ -2,7 +2,7 @@
 
 use rocket::http::RawStr;
 
-#[macro_use] extern crate rocket;
+// #[macro_use] extern crate rocket;
 
 use rocket::http::Header;
 use rocket::{Request, Response};
@@ -37,6 +37,6 @@ impl Fairing for CORS {
 }
 
 
-fn main() {
+pub fn rocket() {
     rocket::ignite().attach(CORS).mount("/", routes![index, myrocket]).launch();
 }
