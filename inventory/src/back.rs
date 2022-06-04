@@ -1,9 +1,3 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
-use rocket::http::RawStr;
-
-// #[macro_use] extern crate rocket;
-
 use rocket::http::Header;
 use rocket::{Request, Response};
 use rocket::fairing::{Fairing, Info, Kind};
@@ -20,6 +14,7 @@ fn myrocket() -> String {
 
 pub struct CORS;
 
+#[rocket::async_trait]
 impl Fairing for CORS {
     fn info(&self) -> Info {
         Info {
@@ -28,7 +23,7 @@ impl Fairing for CORS {
         }
     }
 
-    fn on_response(&self, request: &Request, response: &mut Response) {
+    async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
         response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
         response.set_header(Header::new("Access-Control-Allow-Methods", "POST, GET, PATCH, OPTIONS"));
         response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
@@ -37,6 +32,8 @@ impl Fairing for CORS {
 }
 
 
-pub fn rocket() {
-    rocket::ignite().attach(CORS).mount("/", routes![index, myrocket]).launch();
+#[rocket::main]
+pub async fn rocket() -> Result<(), rocket::Error> {
+    let _rocket = rocket::build().attach(CORS).mount("/", routes![index, myrocket]).launch().await?;
+    Ok(())
 }
