@@ -34,7 +34,7 @@ impl Player {
 
 
     pub fn test(&self) {
-        // send_message(&Msg::Move([21, 164]));
+        send_message(&Msg::Move([187, 172]));
     }
 }
 

@@ -5,6 +5,22 @@ mod inventory;
 mod player;
 mod item;
 
+
+
+
+fn main() {
+    println!("hello");
+
+    let player = player::Player {}; 
+    player.test();
+    // let result = player.open([181, 78, 176]);
+
+    // println!("{:?}", result);
+}
+
+/* Server stuff
+
+
 use rocket::http::Header;
 use rocket::{Request, Response};
 use rocket::fairing::{Fairing, Info, Kind};
@@ -68,3 +84,5 @@ fn rocket() -> _ {
 
     rocket::build().attach(CORS).mount("/", routes![index, myrocket])
 }
+
+*/ 

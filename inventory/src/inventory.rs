@@ -85,11 +85,6 @@ impl Inventory {
 		unimplemented!();
 	}
 
-	pub fn test(&self) {
-		let player = Player::new();
-		player.test();
-	}
-
 	fn empty_slots(&self) -> Vec<([i32; 3], i32)> {
 		let available = vec![[9, 83, 153], [9, 84, 153]];
 
