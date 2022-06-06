@@ -32,12 +32,14 @@ class Player {
 	}
 
 	async move(x, z) {
-		// Adjust from player vs block position
+
 
 
 		// This is not ideal but generate the map each time
 
 		function pathfind(start, dest, map) {
+			console.log("pathfind", start, dest)
+
 			let queue = [[start, []]];
 
 			while (queue.length) 	{
@@ -48,10 +50,15 @@ class Player {
 				let [x,y] = n;
 				for (const a of [[x+1, y], [x-1, y], [x, y+1], [x, y-1]]) {
 
-					if ( includesArray(map, a) && !includesArray(path, a) ) queue.push([a, [...path, n]])
-				}
-			}
+					console.log(a)
+					console.log(includesArray(map, a), !includesArray(path, a) )
+					console.log([a, [...path, n]])
 
+					if ( includesArray(map, a) && !includesArray(path, a) ) queue.push([a, [...path, n]])
+				
+				}
+
+			}
 
 
 		}
@@ -61,6 +68,7 @@ class Player {
 		}
 
 		function straighten_path(path) {
+			console.log(path)
 			if (path.length < 2) return path
 
 
@@ -110,6 +118,9 @@ class Player {
 
 
 
+
+
+
 		const array1 = [...Array(236-128 + 1).keys()].map(x => [173    , 128 + x])
 		const array2 = [...Array(227-119 + 1).keys()].map(x => [119 + x, 182    ])
 		const array3 = [ 
@@ -117,14 +128,33 @@ class Player {
 			[179, 176], [179, 175], [179, 174], [179, 173], [179, 172], [179, 171], [179, 170], [179, 169], 
 			[179, 169], [180, 169], [181, 169], [182, 169], [183, 169], [184, 169], 
 			[184, 169], [184, 170], [184, 171], [184, 172], [184, 173], [184, 174], [184, 175], [184, 176],
+			[184, 175], [185, 175], [186, 175], [187, 175], [188, 175],
 			[184, 172], [185, 172], [186, 172], [187, 172], [188, 172],
-			[184, 169], [185, 169], [186, 169], [187, 169], [188, 169]
+			[184, 169], [185, 169], [186, 169], [187, 169], [188, 169],
 		]
 
 		let map = [...new Set(array1.concat(array2, array3))].sort()
+		let player_position = [Math.floor(this.bot.entity.position.x), Math.floor(this.bot.entity.position.z)]
 
 
-		let path = pathfind([Math.floor(this.bot.entity.position.x), Math.floor(this.bot.entity.position.z)], [x, z], map)
+		x = parseInt(x)
+		z = parseInt(z)
+
+
+		if ((player_position[0] == x) && (player_position[1] == z)) {
+			return "done"
+		}
+
+		if (!includesArray(map, player_position)) {
+			throw Error("player not on map")
+		}
+
+		if (!includesArray(map, [x,z])) {
+			console.log([x,z])
+			throw Error("destination not on map")
+		}
+
+		let path = pathfind(player_position, [x, z], map)
 		console.log(path)
 		let s_path = straighten_path(path)
 		s_path.shift() // remove first
@@ -132,9 +162,6 @@ class Player {
 		for (const p of s_path) {
 			await move_line(...p)
 		}
-
-
-
 
 
 		return "done";

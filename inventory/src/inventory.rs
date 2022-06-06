@@ -33,19 +33,51 @@ impl Inventory {
 
 	}
 
+	pub fn inventory_spaces() -> Vec<[i32; 3]> {
+
+		let offset = [186, 78, 174];
+		let height = 6;
+		let rows = 3;
+		let depth = 3;
+
+
+		let mut spaces = vec![];
+		for i_row in 0..rows {
+			for i_depth in 0..depth {
+				for i_height in 0..height {
+					spaces.push([i_depth, i_height, i_row*-3]);
+				}
+			}
+		} 
+	
+
+		spaces.iter().map(|s| [s[0] + offset[0], s[1] + offset[1], s[2] + offset[2]]).collect()
+	
+	}
+
 	pub fn take_inventory() -> Inventory {
 
 		let player = Player::new();
-		let items = player.open([9, 83, 153]);
 
 		let mut client = Client::connect("postgresql://mc-inventory:pineapple@localhost", NoTls).unwrap();
 
-        for item in &items {
-            client.execute(
-                "INSERT INTO items (code, metadata, name, display_name, stack_size, slot, count, nbt, chest_x, chest_y, chest_z) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
-                &[&item.code, &item.metadata, &item.name, &item.display_name, &item.stack_size, &item.slot, &item.count, &item.nbt, &item.chest_x, &item.chest_y, &item.chest_z],
-            );
-        }
+		client.execute("truncate table items", &[]);
+
+		let mut items = vec![];
+
+		for chest in Inventory::inventory_spaces().iter() {
+			player.move_position(&[chest[0], chest[2]+1]);
+			let mut chest_items = player.open(chest);
+	        for item in &chest_items {
+	            client.execute(
+	                "INSERT INTO items (code, metadata, name, display_name, stack_size, slot, count, nbt, chest_x, chest_y, chest_z) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+	                &[&item.code, &item.metadata, &item.name, &item.display_name, &item.stack_size, &item.slot, &item.count, &item.nbt, &item.chest_x, &item.chest_y, &item.chest_z],
+	            );
+	        }
+	        items.append(&mut chest_items);
+		}
+
+
 
 
 		Inventory { items }
@@ -56,7 +88,7 @@ impl Inventory {
 
 	pub fn deposit(&self, chest: [i32; 3]) {
 		let player = Player::new();
-		let to_deposit: Vec<Item> = player.open(chest);
+		let to_deposit: Vec<Item> = player.open(&chest);
 
 		println!("{:?}", &to_deposit);
 

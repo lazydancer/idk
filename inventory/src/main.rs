@@ -1,4 +1,4 @@
-#[macro_use] extern crate rocket;
+// #[macro_use] extern crate rocket;
 
 
 mod inventory;
@@ -6,14 +6,18 @@ mod player;
 mod item;
 
 
-
-
 fn main() {
     println!("hello");
 
-    let player = player::Player {}; 
-    player.test();
-    // let result = player.open([181, 78, 176]);
+    let inventory = inventory::Inventory::take_inventory();
+    println!("{:?}", inventory);
+
+    // let inventory = inventory::Inventory::inventory_spaces();
+
+
+    // let player = player::Player {}; 
+    // player.test();
+    // let result = player.move_position(&[187, 175]);
 
     // println!("{:?}", result);
 }
@@ -85,4 +89,4 @@ fn rocket() -> _ {
     rocket::build().attach(CORS).mount("/", routes![index, myrocket])
 }
 
-*/ 
+*/

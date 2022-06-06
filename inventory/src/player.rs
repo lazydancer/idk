@@ -16,13 +16,16 @@ impl Player {
         Player {}
     }
 
-    pub fn open(&self, chest: [i32; 3]) -> Vec<Item> {
-        send_message(&Msg::Open(chest));
+    pub fn open(&self, chest: &[i32; 3]) -> Vec<Item> {
+        send_message(&Msg::Open(*chest));
         let response = send_message(&Msg::Log);
         send_message(&Msg::Close);
         json_to_items(&response)
     }
 
+    pub fn move_position(&self, position: &[i32; 2]) {
+        send_message(&Msg::Move(*position));
+    }
 
     pub fn run(&self, commands: Vec<MoveItem>) {
         for cmd in commands {
