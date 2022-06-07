@@ -33,13 +33,7 @@ class Player {
 
 	async move(x, z) {
 
-
-
-		// This is not ideal but generate the map each time
-
 		function pathfind(start, dest, map) {
-			console.log("pathfind", start, dest)
-
 			let queue = [[start, []]];
 
 			while (queue.length) 	{
@@ -49,10 +43,6 @@ class Player {
 				
 				let [x,y] = n;
 				for (const a of [[x+1, y], [x-1, y], [x, y+1], [x, y-1]]) {
-
-					console.log(a)
-					console.log(includesArray(map, a), !includesArray(path, a) )
-					console.log([a, [...path, n]])
 
 					if ( includesArray(map, a) && !includesArray(path, a) ) queue.push([a, [...path, n]])
 				
@@ -68,7 +58,6 @@ class Player {
 		}
 
 		function straighten_path(path) {
-			console.log(path)
 			if (path.length < 2) return path
 
 
@@ -96,6 +85,7 @@ class Player {
 			let position = vec3(x + 0.5, 78, z + 0.5)
 
 			await this.bot.lookAt(position);
+			await this.bot.waitForTicks(10);
 			this.bot.setControlState('forward', true);
 
 			return new Promise(resolve => {
@@ -116,11 +106,7 @@ class Player {
 
 		}
 
-
-
-
-
-
+		// This is not ideal but generate the map each time
 		const array1 = [...Array(236-128 + 1).keys()].map(x => [173    , 128 + x])
 		const array2 = [...Array(227-119 + 1).keys()].map(x => [119 + x, 182    ])
 		const array3 = [ 
@@ -150,12 +136,10 @@ class Player {
 		}
 
 		if (!includesArray(map, [x,z])) {
-			console.log([x,z])
 			throw Error("destination not on map")
 		}
 
 		let path = pathfind(player_position, [x, z], map)
-		console.log(path)
 		let s_path = straighten_path(path)
 		s_path.shift() // remove first
 

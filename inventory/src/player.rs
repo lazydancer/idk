@@ -44,8 +44,10 @@ impl Player {
 #[derive(Debug)]
 pub struct MoveItem {
     pub from_chest: [i32; 3],
+    pub from_chest_pos: [i32; 2],
     pub from_slot: i32,
     pub to_chest: [i32; 3],
+    pub to_chest_pos: [i32; 2],
     pub to_slot: i32,
     pub amount: i32,
 }
@@ -54,10 +56,12 @@ pub struct MoveItem {
 impl MoveItem {
     fn to_messages(&self) -> Vec<Msg> {
         vec![
+            Msg::Move(self.from_chest_pos),
             Msg::Open(self.from_chest),
             Msg::LClick(self.from_slot),
             Msg::LClick(54),
             Msg::Close,
+            Msg::Move(self.to_chest_pos),
             Msg::Open(self.to_chest),
             Msg::LClick(54),
             Msg::LClick(self.to_slot),
@@ -65,6 +69,11 @@ impl MoveItem {
         ]
     }
  }
+
+
+fn minimize_moves(commands: Vec<MoveItem>) -> Vec<Msg> {
+    unimplemented!();
+}
 
 
 enum Msg {

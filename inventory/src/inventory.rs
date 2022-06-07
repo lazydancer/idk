@@ -33,27 +33,7 @@ impl Inventory {
 
 	}
 
-	pub fn inventory_spaces() -> Vec<[i32; 3]> {
 
-		let offset = [186, 78, 174];
-		let height = 6;
-		let rows = 3;
-		let depth = 3;
-
-
-		let mut spaces = vec![];
-		for i_row in 0..rows {
-			for i_depth in 0..depth {
-				for i_height in 0..height {
-					spaces.push([i_depth, i_height, i_row*-3]);
-				}
-			}
-		} 
-	
-
-		spaces.iter().map(|s| [s[0] + offset[0], s[1] + offset[1], s[2] + offset[2]]).collect()
-	
-	}
 
 	pub fn take_inventory() -> Inventory {
 
@@ -86,26 +66,43 @@ impl Inventory {
 
 	}
 
+
+ 
+
 	pub fn deposit(&self, chest: [i32; 3]) {
 		let player = Player::new();
-		let to_deposit: Vec<Item> = player.open(&chest);
 
-		println!("{:?}", &to_deposit);
+		player.move_position(&[chest[0]+2, chest[2]]);
+		let to_deposit: Vec<Item> = player.open(&chest);
 
 		let empty = self.empty_slots();
 
-		let it = to_deposit.iter().zip(empty.iter());
+		let items: Vec<_> = to_deposit.iter().zip(empty.iter()).collect();
 
-		let commands: Vec<_> = it.map(|i| MoveItem {
-			from_chest: [i.0.chest_x,i.0.chest_y, i.0.chest_z],
-    		from_slot: i.0.slot,
-    		to_chest: i.1.0,
-    		to_slot: i.1.1,
-    		amount: i.0.count,
+		let commands: Vec<_> = items.iter().map(|item| MoveItem {
+			from_chest: [item.0.chest_x,item.0.chest_y, item.0.chest_z],
+			from_chest_pos: Inventory::chest_position(&[item.0.chest_x,item.0.chest_y, item.0.chest_z]),
+    		from_slot: item.0.slot,
+    		to_chest: item.1.0,
+			to_chest_pos: Inventory::chest_position(&item.1.0), 
+    		to_slot: item.1.1,
+    		amount: item.0.count,
 		}).collect();
 
 		println!("{:?}", commands);
 		player.run(commands);
+
+
+		let mut client = Client::connect("postgresql://mc-inventory:pineapple@localhost", NoTls).unwrap();
+
+		for item in items {
+		    client.execute(
+                "INSERT INTO items (code, metadata, name, display_name, stack_size, slot, count, nbt, chest_x, chest_y, chest_z) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+                &[&item.0.code, &item.0.metadata, &item.0.name, &item.0.display_name, &item.0.stack_size, &item.1.1, &item.0.count, &item.0.nbt, &item.1.0[0], &item.1.0[1], &item.1.0[2]],
+            );
+
+		}
+
 
 	}
 
@@ -117,8 +114,31 @@ impl Inventory {
 		unimplemented!();
 	}
 
+
+	pub fn inventory_spaces() -> Vec<[i32; 3]> {
+
+		let offset = [186, 78, 174];
+		let height = 6;
+		let rows = 3;
+		let depth = 3;
+
+
+		let mut spaces = vec![];
+		for i_row in 0..rows {
+			for i_depth in 0..depth {
+				for i_height in 0..height {
+					spaces.push([i_depth, i_height, i_row*-3]);
+				}
+			}
+		} 
+	
+
+		spaces.iter().map(|s| [s[0] + offset[0], s[1] + offset[1], s[2] + offset[2]]).collect()
+	
+	}
+
 	fn empty_slots(&self) -> Vec<([i32; 3], i32)> {
-		let available = vec![[9, 83, 153], [9, 84, 153]];
+		let available = Inventory::inventory_spaces();
 
 		let filled = self.items.iter()
 			.map( |i| ([i.chest_x, i.chest_y, i.chest_z], i.slot))
@@ -137,4 +157,17 @@ impl Inventory {
 		empty
 
 	}
+
+	fn chest_position(chest: &[i32; 3]) -> [i32; 2] {
+
+		if chest[0] >= 186 && chest[2] <= 174 {
+			[chest[0],  chest[2]+1]
+		} else if chest[0] == 182 {
+     		[chest[0]+2, chest[2]]
+		} else {
+			unimplemented!()
+		}
+
+	}
+	
 }
