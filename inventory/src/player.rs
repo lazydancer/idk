@@ -71,7 +71,47 @@ impl MoveItem {
  }
 
 
-fn minimize_moves(commands: Vec<MoveItem>) -> Vec<Msg> {
+fn group_moves(commands: Vec<MoveItem>) -> Vec<Msg> {
+
+
+    vec![
+        Msg::Move(self.from_chest_pos),
+        Msg::Open(self.from_chest),
+        Msg::LClick(self.from_slot),
+        Msg::LClick(54),
+        Msg::LClick(self.from_slot),
+        Msg::LClick(55),
+        Msg::LClick(self.from_slot),
+        Msg::LClick(56),
+        Msg::LClick(self.from_slot),
+        Msg::LClick(57),
+        Msg::LClick(self.from_slot),
+        Msg::LClick(58),
+        Msg::LClick(self.from_slot),
+        Msg::LClick(59),
+        Msg::Close,
+
+        Msg::Move(self.from_chest_pos),
+        Msg::Open(self.from_chest),
+        Msg::LClick(54),
+        Msg::LClick(self.to_slot),
+        Msg::LClick(55),
+        Msg::LClick(self.to_slot),
+        Msg::LClick(56),
+        Msg::LClick(self.to_slot),
+        Msg::LClick(57),
+        Msg::LClick(self.to_slot),
+        Msg::Close,
+
+
+        Msg::Move(self.from_chest_pos),
+        Msg::Open(self.from_chest),
+        Msg::LClick(54),
+        Msg::LClick(self.to_slot),
+        Msg::Close,
+    
+
+    ]   
     unimplemented!();
 }
 
