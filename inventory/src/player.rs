@@ -2,6 +2,7 @@ use std::io::{self, BufRead, Write};
 use std::net::TcpStream;
 
 
+use crate::inventory;
 use crate::item::{Item, json_to_items};
 
 
@@ -28,10 +29,11 @@ impl Player {
     }
 
     pub fn run(&self, commands: Vec<MoveItem>) {
-        for cmd in commands {
-            for msg in cmd.to_messages() {
-                send_message(&msg);
-            }
+        let msgs = group_moves(commands);
+        println!("result: {:?}", &msgs);
+
+        for m in msgs {
+            send_message(&m);
         }
     }
 
@@ -73,49 +75,74 @@ impl MoveItem {
 
 fn group_moves(commands: Vec<MoveItem>) -> Vec<Msg> {
 
+    // Group common from chests together as much as possible
+    // commands.sort(from_chest);
+    let mut messages = vec![];
 
-    vec![
-        Msg::Move(self.from_chest_pos),
-        Msg::Open(self.from_chest),
-        Msg::LClick(self.from_slot),
-        Msg::LClick(54),
-        Msg::LClick(self.from_slot),
-        Msg::LClick(55),
-        Msg::LClick(self.from_slot),
-        Msg::LClick(56),
-        Msg::LClick(self.from_slot),
-        Msg::LClick(57),
-        Msg::LClick(self.from_slot),
-        Msg::LClick(58),
-        Msg::LClick(self.from_slot),
-        Msg::LClick(59),
-        Msg::Close,
-
-        Msg::Move(self.from_chest_pos),
-        Msg::Open(self.from_chest),
-        Msg::LClick(54),
-        Msg::LClick(self.to_slot),
-        Msg::LClick(55),
-        Msg::LClick(self.to_slot),
-        Msg::LClick(56),
-        Msg::LClick(self.to_slot),
-        Msg::LClick(57),
-        Msg::LClick(self.to_slot),
-        Msg::Close,
+    let first_empty = |arr: &[Option<_>]| arr.iter().position(|x| x.is_none());
 
 
-        Msg::Move(self.from_chest_pos),
-        Msg::Open(self.from_chest),
-        Msg::LClick(54),
-        Msg::LClick(self.to_slot),
-        Msg::Close,
+    let mut inventory: [Option<MoveItem>; 27] = Default::default();
+
+    let mut prev_chest: Option<[i32; 3]> = None;
+
+    for c in commands {
+
+        if Some(c.from_chest) != prev_chest {
+            if prev_chest != None {
+                messages.push(Msg::Close);
+            }
+
+            messages.push(Msg::Move(c.from_chest_pos));
+            messages.push(Msg::Open(c.from_chest));
+        
+            prev_chest = Some(c.from_chest);
+        }
+
+
+
+        messages.push(Msg::LClick(c.from_slot));
+        let open_slot = first_empty(&inventory).unwrap();
+        inventory[open_slot] = Some(c);
+        messages.push(Msg::LClick(open_slot as i32+ 54));
+    } 
+
+    messages.push(Msg::Close);
+
     
+    prev_chest = None;
 
-    ]   
-    unimplemented!();
+    for (i,inv) in inventory.iter().enumerate() {
+
+        if let Some(inv) = inv {
+            if Some(inv.to_chest) != prev_chest {
+                if prev_chest != None {
+                    messages.push(Msg::Close);
+                }
+                
+                messages.push(Msg::Move(inv.to_chest_pos));
+                messages.push(Msg::Open(inv.to_chest));
+
+                prev_chest = Some(inv.to_chest);
+            }
+
+            messages.push(Msg::LClick(i as i32 + 54));
+            messages.push(Msg::LClick(inv.to_slot));
+
+        }
+       
+    }
+
+    messages.push(Msg::Close);
+
+
+
+    messages
+
 }
 
 
+#[derive(Debug)]
 enum Msg {
     Open([i32; 3]),
     Close,
