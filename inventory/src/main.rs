@@ -9,10 +9,10 @@ mod item;
 fn main() {
     println!("hello");
 
-    // let inventory = inventory::Inventory::take_inventory();
+    let inventory = inventory::Inventory::take_inventory();
     // println!("{:?}", inventory);
 
-    let inventory = inventory::Inventory::new();
+    // let inventory = inventory::Inventory::new();
     inventory.deposit([182, 78, 176]);
 
 
