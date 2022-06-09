@@ -1,8 +1,8 @@
 use std::io::{self, BufRead, Write};
 use std::net::TcpStream;
+use std::error::Error;
 
 
-use crate::inventory;
 use crate::item::{Item, json_to_items};
 
 
@@ -17,29 +17,31 @@ impl Player {
         Player {}
     }
 
-    pub fn open(&self, chest: &[i32; 3]) -> Vec<Item> {
-        send_message(&Msg::Open(*chest));
-        let response = send_message(&Msg::Log);
-        send_message(&Msg::Close);
-        json_to_items(&response)
+    pub fn open(&self, chest: &[i32; 3]) -> Result<Vec<Item>, Box<dyn Error>> {
+        send_message(&Msg::Open(*chest))?;
+        let response = send_message(&Msg::Log)?;
+        send_message(&Msg::Close)?;
+        Ok(json_to_items(&response))
     }
 
     pub fn move_position(&self, position: &[i32; 2]) {
-        send_message(&Msg::Move(*position));
+        send_message(&Msg::Move(*position)).unwrap();
     }
 
-    pub fn run(&self, commands: Vec<MoveItem>) {
+    pub fn run(&self, commands: Vec<MoveItem>) -> Result<(), Box<dyn Error>> {
         let msgs = group_moves(commands);
         println!("result: {:?}", &msgs);
 
         for m in msgs {
-            send_message(&m);
+            send_message(&m)?;
         }
+
+        Ok(())
     }
 
 
     pub fn test(&self) {
-        send_message(&Msg::Move([187, 172]));
+        send_message(&Msg::Move([187, 172])).unwrap();
     }
 }
 
@@ -53,24 +55,6 @@ pub struct MoveItem {
     pub to_slot: i32,
     pub amount: i32,
 }
-
-
-impl MoveItem {
-    fn to_messages(&self) -> Vec<Msg> {
-        vec![
-            Msg::Move(self.from_chest_pos),
-            Msg::Open(self.from_chest),
-            Msg::LClick(self.from_slot),
-            Msg::LClick(54),
-            Msg::Close,
-            Msg::Move(self.to_chest_pos),
-            Msg::Open(self.to_chest),
-            Msg::LClick(54),
-            Msg::LClick(self.to_slot),
-            Msg::Close,
-        ]
-    }
- }
 
 
 fn group_moves(commands: Vec<MoveItem>) -> Vec<Msg> {
@@ -153,7 +137,7 @@ enum Msg {
     Log,
 }
 
-fn send_message(msg: &Msg) -> String {
+fn send_message(msg: &Msg) -> Result<String, Box<dyn Error>> {
     let mut stream = TcpStream::connect("127.0.0.1:1337").unwrap();
 
 
@@ -165,7 +149,7 @@ fn send_message(msg: &Msg) -> String {
         Msg::Close => "close".to_string(),
     };
 
-    stream.write(message.as_bytes());
+    stream.write_all(message.as_bytes())?;
 
     const DEFAULT_BUF_SIZE: usize = 8 * 1024 * 8;
     let mut reader = io::BufReader::with_capacity(DEFAULT_BUF_SIZE, &mut stream);
@@ -174,7 +158,7 @@ fn send_message(msg: &Msg) -> String {
 
     reader.consume(received.len());
 
-    String::from_utf8(received).unwrap()
+    Ok(String::from_utf8(received).unwrap())
 }
 
 

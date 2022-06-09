@@ -47,12 +47,22 @@ impl Inventory {
 
 		for chest in Inventory::inventory_spaces().iter() {
 			player.move_position(&[chest[0], chest[2]+1]);
-			let mut chest_items = player.open(chest);
+			
+			let mut chest_items = match player.open(&chest) {
+			    Ok(x) => x,
+			    Error => panic!("Could not open chest: {:?}", &chest)
+			};
+
+
 	        for item in &chest_items {
-	            client.execute(
+	            let r = client.execute(
 	                "INSERT INTO items (code, metadata, name, display_name, stack_size, slot, count, nbt, chest_x, chest_y, chest_z) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
 	                &[&item.code, &item.metadata, &item.name, &item.display_name, &item.stack_size, &item.slot, &item.count, &item.nbt, &item.chest_x, &item.chest_y, &item.chest_z],
 	            );
+	            match r {
+	            	Ok(_) => (),
+	            	Error => panic!("Could not insert item into table")
+	            }
 	        }
 	        items.append(&mut chest_items);
 		}
@@ -73,7 +83,13 @@ impl Inventory {
 		let player = Player::new();
 
 		player.move_position(&[chest[0]+2, chest[2]]);
-		let to_deposit: Vec<Item> = player.open(&chest);
+		// let to_deposit= player.open(&chest).ok_or(panic!("couldn't open deposit chest"));
+
+
+		let to_deposit = match player.open(&chest) {
+		    Ok(x) => x,
+		    Error => panic!("Could not open deposit chest")
+		};
 
 		let empty = self.empty_slots();
 
@@ -96,10 +112,14 @@ impl Inventory {
 		let mut client = Client::connect("postgresql://mc-inventory:pineapple@localhost", NoTls).unwrap();
 
 		for item in items {
-		    client.execute(
+		    let r = client.execute(
                 "INSERT INTO items (code, metadata, name, display_name, stack_size, slot, count, nbt, chest_x, chest_y, chest_z) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
                 &[&item.0.code, &item.0.metadata, &item.0.name, &item.0.display_name, &item.0.stack_size, &item.1.1, &item.0.count, &item.0.nbt, &item.1.0[0], &item.1.0[1], &item.1.0[2]],
             );
+        	match r {
+            	Ok(_) => (),
+            	Error => panic!("Could not insert item into table")
+            }
 
 		}
 
