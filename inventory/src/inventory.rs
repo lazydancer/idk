@@ -12,19 +12,18 @@ pub struct Inventory {
 impl Inventory {
 	pub fn new() -> Inventory {
 		let mut client = Client::connect("postgresql://mc-inventory:pineapple@localhost", NoTls).unwrap();
-		let items = client.query("SELECT code, metadata, nbt, name, display_name, stack_size, count, chest_x, chest_y, chest_z, slot FROM items", &[]).unwrap().iter().map( 
+		let items = client.query("SELECT metadata, nbt, name, display_name, stack_size, count, chest_x, chest_y, chest_z, slot FROM items", &[]).unwrap().iter().map( 
 			|row| Item { 
-	    		code: row.get(0),
-		        metadata: row.get(1),
-		        nbt: row.get(2),
-		        name: row.get(3),
-		        display_name: row.get(4),
-		        stack_size: row.get(5),
-		        count: row.get(6),
-		        chest_x: row.get(7),
-		        chest_y: row.get(8),
-		        chest_z: row.get(9),
-		        slot: row.get(10), 
+		        metadata: row.get(0),
+		        nbt: row.get(1),
+		        name: row.get(2),
+		        display_name: row.get(3),
+		        stack_size: row.get(4),
+		        count: row.get(5),
+		        chest_x: row.get(6),
+		        chest_y: row.get(7),
+		        chest_z: row.get(8),
+		        slot: row.get(9), 
 			}
 		).collect();
 
@@ -56,9 +55,10 @@ impl Inventory {
 
 	        for item in &chest_items {
 	            let r = client.execute(
-	                "INSERT INTO items (code, metadata, name, display_name, stack_size, slot, count, nbt, chest_x, chest_y, chest_z) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
-	                &[&item.code, &item.metadata, &item.name, &item.display_name, &item.stack_size, &item.slot, &item.count, &item.nbt, &item.chest_x, &item.chest_y, &item.chest_z],
+	                "INSERT INTO items (metadata, name, display_name, stack_size, slot, count, nbt, chest_x, chest_y, chest_z) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+	                &[&item.metadata, &item.name, &item.display_name, &item.stack_size, &item.slot, &item.count, &item.nbt, &item.chest_x, &item.chest_y, &item.chest_z],
 	            );
+            	println!("{:?}", r);
 	            match r {
 	            	Ok(_) => (),
 	            	Error => panic!("Could not insert item into table")
@@ -113,8 +113,8 @@ impl Inventory {
 
 		for item in items {
 		    let r = client.execute(
-                "INSERT INTO items (code, metadata, name, display_name, stack_size, slot, count, nbt, chest_x, chest_y, chest_z) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
-                &[&item.0.code, &item.0.metadata, &item.0.name, &item.0.display_name, &item.0.stack_size, &item.1.1, &item.0.count, &item.0.nbt, &item.1.0[0], &item.1.0[1], &item.1.0[2]],
+                "INSERT INTO items (metadata, name, display_name, stack_size, slot, count, nbt, chest_x, chest_y, chest_z) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+                &[&item.0.metadata, &item.0.name, &item.0.display_name, &item.0.stack_size, &item.1.1, &item.0.count, &item.0.nbt, &item.1.0[0], &item.1.0[1], &item.1.0[2]],
             );
         	match r {
             	Ok(_) => (),
@@ -127,6 +127,12 @@ impl Inventory {
 	}
 
 	pub fn withdraw(&self, items: Vec<Item>, chest: [i32; 3]) {
+		// Search database for item and location
+		
+		// Return error if item not found
+
+		// Send item list to player
+
 		unimplemented!();
 	}
 

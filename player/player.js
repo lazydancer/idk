@@ -161,8 +161,9 @@ class Player {
 			o["stack_size"] = o["stackSize"];
 			delete o["stackSize"]
 
-			o["code"] = o["type"];
 			delete o["type"]
+			// o["code"] = o["type"];
+			// delete o["type"]
 
 			o["chest_x"] = parseInt(this.chest_loc[0])
 			o["chest_y"] = parseInt(this.chest_loc[1])

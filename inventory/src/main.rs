@@ -7,12 +7,29 @@ mod item;
 
 
 fn main() {
+    let item = item::Item {
+        metadata: 0,
+        nbt: serde_json::Value::Null,
+        name: String::from("stone"),
+        display_name: String::from("Stone"),
+        stack_size: 64,
+        count: 64,
+        chest_x: 0,
+        chest_y: 0,
+        chest_z: 0,
+        slot: 0,
+    };
+
+
+
     println!("hello");
 
-    // let inventory = inventory::Inventory::take_inventory();
-    // println!("{:?}", inventory);
+    let inventory = inventory::Inventory::take_inventory();
+    println!("{:?}", inventory);
 
     // let inventory = inventory::Inventory::new();
+
+    // inventory.withdraw(vec![item::Item::, chest)
     // inventory.deposit([182, 78, 176]);
 
 
