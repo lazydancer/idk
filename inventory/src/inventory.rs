@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use postgres::{Client, NoTls};
 
 use crate::item::Item;
@@ -83,7 +85,6 @@ impl Inventory {
 		let player = Player::new();
 
 		player.move_position(&[chest[0]+2, chest[2]]);
-		// let to_deposit= player.open(&chest).ok_or(panic!("couldn't open deposit chest"));
 
 
 		let to_deposit = match player.open(&chest) {
@@ -126,14 +127,89 @@ impl Inventory {
 
 	}
 
-	pub fn withdraw(&self, items: Vec<Item>, chest: [i32; 3]) {
+	pub fn withdraw(&self, items: Vec<Item>, chest: [i32; 3]) -> Result<(), Box<dyn Error>>{
+
+		let mut client = Client::connect("postgresql://mc-inventory:pineapple@localhost", NoTls).unwrap();
+
+		let mut commands = vec![];
+		let mut open_slot = 0;
+
+		for item in items {
+			let stored_items: Vec<_> = client.query("SELECT metadata, nbt, name, display_name, stack_size, count, chest_x, chest_y, chest_z, slot FROM items WHERE name=$1 AND metadata=$2 AND nbt=$3", &[&item.name, &item.metadata, &item.nbt]).unwrap().iter().map( 
+				|row| Item { 
+			        metadata: row.get(0),
+			        nbt: row.get(1),
+			        name: row.get(2),
+			        display_name: row.get(3),
+			        stack_size: row.get(4),
+			        count: row.get(5),
+			        chest_x: row.get(6),
+			        chest_y: row.get(7),
+			        chest_z: row.get(8),
+			        slot: row.get(9), 
+				}
+			).collect();
+
+			let mut remaining = item.count;
+
+			for stored_item in stored_items {
+
+				if remaining == 0 {
+					break;
+				}
+
+				let amount = if remaining >= stored_item.count {
+					stored_item.count  
+				} else {
+					remaining  
+				};
+
+				commands.push(MoveItem {
+					from_chest: [stored_item.chest_x,stored_item.chest_y, stored_item.chest_z],
+					from_chest_pos: Inventory::chest_position(&[stored_item.chest_x,stored_item.chest_y, stored_item.chest_z]),
+		    		from_slot: stored_item.slot,
+		    		to_chest: chest,
+					to_chest_pos: Inventory::chest_position(&chest), 
+		    		to_slot: open_slot,
+		    		amount,
+				});
+
+				remaining -= amount;
+				open_slot += 1;
+
+	            client.execute(
+	                "UPDATE items SET count = $1 WHERE metadata=$2 and name=$3 and display_name=$4 and stack_size=$5 and slot=$6 and count=$7 and nbt=$8 and chest_x=$9 and chest_y=$10 and chest_z=$11",
+	                &[&amount, &item.metadata, &item.name, &item.display_name, &item.stack_size, &item.slot, &item.count, &item.nbt, &item.chest_x, &item.chest_y, &item.chest_z],
+	            )?;
+
+
+
+			}
+
+
+		}
+
+
+
+		println!("{:?}", commands);
+
+		let player = Player::new();
+		player.run(commands)?;
+
+        client.execute("DELETE items WHERE count = 0", &[])?;
+
+
+		// let row = client.query("SELECT metadata, name, display_name, stack_size, slot, count, nbt, chest_x, chest_y, chest_z FROM items WHERE name='coal_ore' AND metadata=0 AND nbt='null'", &[]);
+		// println!("{:?}", row);
+
 		// Search database for item and location
 		
 		// Return error if item not found
 
 		// Send item list to player
 
-		unimplemented!();
+		Ok(())
+
 	}
 
 	pub fn confirm(&self) {
