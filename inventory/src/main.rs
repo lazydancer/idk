@@ -25,13 +25,13 @@ fn main() {
 
     println!("hello");
 
-    let inventory = inventory::Inventory::take_inventory();
+    // let inventory = inventory::Inventory::take_inventory();
     // println!("{:?}", inventory);
 
-    // let inventory = inventory::Inventory::new();
+    let inventory = inventory::Inventory::new();
 
-    inventory.withdraw(vec![item::Item::base("stone".to_string(), 0, serde_json::Value::Null, 100)], [182,78,176]);
-    // inventory.deposit([182, 78, 176]);
+    // inventory.withdraw(vec![item::Item::base("stone".to_string(), 0, serde_json::Value::Null, 100)], [182,78,176]);
+    inventory.deposit([182, 78, 176]);
 
 
     // let inventory = inventory::Inventory::inventory_spaces();

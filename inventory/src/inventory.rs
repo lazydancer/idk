@@ -99,6 +99,7 @@ impl Inventory {
 			from_chest: [item.0.chest_x,item.0.chest_y, item.0.chest_z],
 			from_chest_pos: Inventory::chest_position(&[item.0.chest_x,item.0.chest_y, item.0.chest_z]),
     		from_slot: item.0.slot,
+    		from_amount: item.0.count,
     		to_chest: item.1.0,
 			to_chest_pos: Inventory::chest_position(&item.1.0), 
     		to_slot: item.1.1,
@@ -106,6 +107,8 @@ impl Inventory {
 		}).collect();
 
 		println!("{:?}", commands);
+
+
 		player.run(commands);
 
 
@@ -128,11 +131,11 @@ impl Inventory {
 
 	pub fn withdraw(&self, items: Vec<Item>, chest: [i32; 3]) -> Result<(), Box<dyn Error>>{
 
+		let mut commands = vec![];
+
 		let mut client = Client::connect("postgresql://mc-inventory:pineapple@localhost", NoTls).unwrap();
 
-		let mut commands = vec![];
 		let mut open_slot = 0;
-
 		for item in items {
 			let stored_items: Vec<_> = client.query("SELECT metadata, nbt, name, display_name, stack_size, count, chest_x, chest_y, chest_z, slot FROM items WHERE name=$1 AND metadata=$2 AND nbt=$3", &[&item.name, &item.metadata, &item.nbt]).unwrap().iter().map( 
 				|row| Item { 
@@ -167,6 +170,7 @@ impl Inventory {
 					from_chest: [stored_item.chest_x,stored_item.chest_y, stored_item.chest_z],
 					from_chest_pos: Inventory::chest_position(&[stored_item.chest_x,stored_item.chest_y, stored_item.chest_z]),
 		    		from_slot: stored_item.slot,
+		    		from_amount: stored_item.count,
 		    		to_chest: chest,
 					to_chest_pos: Inventory::chest_position(&chest), 
 		    		to_slot: open_slot,

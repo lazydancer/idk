@@ -50,6 +50,7 @@ pub struct MoveItem {
     pub from_chest: [i32; 3],
     pub from_chest_pos: [i32; 2],
     pub from_slot: i32,
+    pub from_amount: i32,
     pub to_chest: [i32; 3],
     pub to_chest_pos: [i32; 2],
     pub to_slot: i32,
@@ -86,15 +87,21 @@ fn group_moves(commands: Vec<MoveItem>) -> Vec<Msg> {
             }
 
 
-
             messages.push(Msg::LClick(c.from_slot));
             let open_slot = first_empty(&inventory).unwrap();
             inventory[open_slot] = Some(*c);
 
-            for _ in 0..c.amount as usize {
-                messages.push(Msg::RClick(open_slot as i32 + 54));
+
+            if c.amount == c.from_amount {
+                messages.push(Msg::LClick(open_slot as i32 + 54));
+            } else {
+                for _ in 0..c.amount as usize {
+                    messages.push(Msg::RClick(open_slot as i32 + 54));
+                }
+                messages.push(Msg::LClick(c.from_slot));
             }
-            messages.push(Msg::LClick(c.from_slot));
+
+
 
         } 
 
