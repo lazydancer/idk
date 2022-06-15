@@ -21,6 +21,9 @@ function handler(socket) {
 	        case "lclick":
 	        	player.lclick(args[0]).then(resp => socket.write(resp))
 				break;
+			case "rclick":
+	        	player.rclick(args[0]).then(resp => socket.write(resp))
+				break;
 	        case "log":
 	        	player.log().then(resp => socket.write(resp))
 				break;

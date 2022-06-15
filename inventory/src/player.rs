@@ -57,6 +57,7 @@ pub struct MoveItem {
 }
 
 
+
 fn group_moves(commands: Vec<MoveItem>) -> Vec<Msg> {
 
     // Group common from chests together as much as possible
@@ -89,7 +90,12 @@ fn group_moves(commands: Vec<MoveItem>) -> Vec<Msg> {
             messages.push(Msg::LClick(c.from_slot));
             let open_slot = first_empty(&inventory).unwrap();
             inventory[open_slot] = Some(*c);
-            messages.push(Msg::LClick(open_slot as i32+ 54));
+
+            for _ in 0..c.amount as usize {
+                messages.push(Msg::RClick(open_slot as i32 + 54));
+            }
+            messages.push(Msg::LClick(c.from_slot));
+
         } 
 
         messages.push(Msg::Close);
@@ -133,6 +139,7 @@ enum Msg {
     Open([i32; 3]),
     Close,
     LClick(i32),
+    RClick(i32),
     Move([i32; 2]),
     Log,
 }
@@ -145,6 +152,7 @@ fn send_message(msg: &Msg) -> Result<String, Box<dyn Error>> {
         Msg::Open(chest) => format!("open {} {} {}", chest[0], chest[1], chest[2]),     
         Msg::Log => "log".to_string(),
         Msg::LClick(slot) => format!("lclick {}", slot),
+        Msg::RClick(slot) => format!("rclick {}", slot),
         Msg::Move(location) => format!("move {} {}", location[0], location[1]),
         Msg::Close => "close".to_string(),
     };

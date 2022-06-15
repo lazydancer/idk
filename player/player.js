@@ -31,6 +31,11 @@ class Player {
 		return "done";
 	}
 
+	async rclick(slot) {
+		await this.bot.simpleClick.rightMouse(slot)
+		return "done";
+	}
+
 	async move(x, z) {
 
 		function pathfind(start, dest, map) {
@@ -85,7 +90,7 @@ class Player {
 			let position = vec3(x + 0.5, 78, z + 0.5)
 
 			await this.bot.lookAt(position);
-			await this.bot.waitForTicks(10);
+			// await this.bot.waitForTicks(10);
 			this.bot.setControlState('forward', true);
 
 			return new Promise(resolve => {

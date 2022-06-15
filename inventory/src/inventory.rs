@@ -60,7 +60,6 @@ impl Inventory {
 	                "INSERT INTO items (metadata, name, display_name, stack_size, slot, count, nbt, chest_x, chest_y, chest_z) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
 	                &[&item.metadata, &item.name, &item.display_name, &item.stack_size, &item.slot, &item.count, &item.nbt, &item.chest_x, &item.chest_y, &item.chest_z],
 	            );
-            	println!("{:?}", r);
 	            match r {
 	            	Ok(_) => (),
 	            	Error => panic!("Could not insert item into table")
@@ -178,8 +177,8 @@ impl Inventory {
 				open_slot += 1;
 
 	            client.execute(
-	                "UPDATE items SET count = $1 WHERE metadata=$2 and name=$3 and display_name=$4 and stack_size=$5 and slot=$6 and count=$7 and nbt=$8 and chest_x=$9 and chest_y=$10 and chest_z=$11",
-	                &[&amount, &item.metadata, &item.name, &item.display_name, &item.stack_size, &item.slot, &item.count, &item.nbt, &item.chest_x, &item.chest_y, &item.chest_z],
+	                "UPDATE items SET count = $1 WHERE slot=$2 and chest_x=$3 and chest_y=$4 and chest_z=$5",
+	                &[&(stored_item.count - amount), &stored_item.slot, &stored_item.chest_x, &stored_item.chest_y, &stored_item.chest_z],
 	            )?;
 
 
@@ -190,23 +189,13 @@ impl Inventory {
 		}
 
 
-
 		println!("{:?}", commands);
 
 		let player = Player::new();
 		player.run(commands)?;
 
-        client.execute("DELETE items WHERE count = 0", &[])?;
+        client.execute("DELETE FROM items WHERE count = 0", &[])?;
 
-
-		// let row = client.query("SELECT metadata, name, display_name, stack_size, slot, count, nbt, chest_x, chest_y, chest_z FROM items WHERE name='coal_ore' AND metadata=0 AND nbt='null'", &[]);
-		// println!("{:?}", row);
-
-		// Search database for item and location
-		
-		// Return error if item not found
-
-		// Send item list to player
 
 		Ok(())
 
