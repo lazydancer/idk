@@ -1,74 +1,113 @@
 <script>
+
 	export let name;
 
+  import { Accordion, AccordionItem } from 'svelte-collapsible'
   import { onMount } from 'svelte';
 
   let items = [];
+  let group = undefined;
+
+  $: visibleItems = group ?
+    items.filter(item => {
+      return item.group == group
+    }) : items
 
   onMount(async () => {
-    const res = await fetch(`http://localhost:8000/api/myrocket`);
+    const res = await fetch(`http://localhost:8000/api/list`);
     items = await res.json();
   });
+
+  function changeGroup(set_group) {
+    group = set_group
+  }
 
 </script>
 
 
-<header class="text-center pt-4">
-<h1>idk</h1>
+<header class="flex flex-row max-w-none mx-auto px-12 py-4 border-b border-gray-300 bg-white sticky top-0">
+  <h1 class="flex-1 text-left text-4xl font-extrabold text-red-700">IDK</h1>
+  <p class="flex-1 text-right font-medium text-gray-900">order</p>
 </header>
 
 
-<main class="flex flex-wrap items-start p-12 max-w-none mx-auto">
-  <ul class="basis-1/4">
-    <li>All</li>
-    <li><ul class="pl-5">
-      <li>Natural</li>
-      <li>Wood</li>
-      <li>Mob Drops</li>
-      <li>Stone</li>
-      <li>Colours</li>
-      <li>Combat</li>
-      <li>Minerals</li>
-      <li>Tools</li>
-      <li>Mining</li>
-      <li>Brewing</li>
-      <li>Nether</li>
-      <li>End</li>
-      <li>Redstone</li>
-      <li>Enchanting</li>
-      <li>Server Specific</li>
-    </ul></li>
-    <li>Cart</li>
+<main class="flex flex-row items-start px-12 py-6 max-w-none mx-auto">
+  <ul class="font-medium text-gray-900 text-sm visited:text-gray-900 pr-10 h-screen fixed top-30 w-40">
+    <li>
+      <a on:click={() => changeGroup(undefined)} class="block py-1 cursor-pointer">All</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("Natural")} class="block py-1 cursor-pointer">Natural</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("Wood")} class="block py-1 cursor-pointer">Wood</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("Mob Drops")} class="block py-1 cursor-pointer">Mob Drops</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("Stone")} class="block py-1 cursor-pointer">Stone</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("Colours")} class="block py-1 cursor-pointer">Colours</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("Combat")} class="block py-1 cursor-pointer">Combat</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("Minerals")} class="block py-1 cursor-pointer">Minerals</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("Tools")} class="block py-1 cursor-pointer">Tools</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("Mining")} class="block py-1 cursor-pointer">Mining</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("Brewing")} class="block py-1 cursor-pointer">Brewing</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("Nether")} class="block py-1 cursor-pointer">Nether</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("End")} class="block py-1 cursor-pointer">End</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("Redstone")} class="block py-1 cursor-pointer">Redstone</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("Enchanting")} class="block py-1 cursor-pointer">Enchanting</a>
+    </li>
+    <li>
+      <a on:click={() => changeGroup("Server Specific")} class="block py-1 cursor-pointer">Server Specific</a>
+    </li>
   </ul>
-  <div class="basis-3/4">
-  <label class="relative block">
-    <span class="absolute inset-y-0 left-0 flex items-center pl-2">
-      <svg class="h-5 w-5 fill-slate-300" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path></svg>
-    </span>
-    <input class="placeholder:italic placeholder:text-slate-400 bg-white w-full rounded-md py-2 pl-9 pr-3 mb-2 focus:outline-none focus:border-sky-500 focus:ring-sky-500 focus:ring-1" placeholder="Search for anything..." type="text" name="search"/>
-  </label>
-    <table class="w-full border-collapse shadow-sm border text-left">
-    <thead>
-      <tr>
-        <th class="p-2">Name</th>
-        <th class="p-2">Available</th>
-        <th class="p-2">Add/Remove</th>
-        <th class="p-2">Count</th>
-      </tr>
-    </thead>
-    <tbody class="border">
-      {#each items as i}
-      <tr>
-        <td class="border-b p-2">{i.name}</td>
-        <td class="border-b p-2">{i.available}</td>
-        <td class="border-b p-2"><input class="w-16 mr-2" type="number" placeholder=1/><button class="px-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 border-0">+</button></td>
-        <td class="border-b p-2">{i.cart}</td>
-      </tr>
+  <div class="flex-1 px-6 ml-36">
+    <Accordion>
+      {#each visibleItems as item}
+        <AccordionItem key={item.key}>
+            <div slot='header' class="flex flex-row py-3">
+              <img src="https://picsum.photos/100?random={item.key}" width="32px" alt="Cover"/>
+              <h2 class="px-6">{ item.displayName }</h2>
+              <p>{ item.metadata }</p>
+            </div>
+            
+            <div slot='body' class='px-4 pb-2'>
+              <p class="text-gray text-sm">
+                name: { item.name }
+              </p>
+              <p class="text-gray text-sm">
+                metadata: { item.metadata }
+              </p>
+              
+              <p class="text-gray text-sm">              
+                nbt: { item.nbt }
+              </p>
+            
+            </div>
+        </AccordionItem>
       {/each}
-    </tbody>
-  </table>
-  <button class="float-right py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 mt-4 border-0">Withdraw</button>
-  <input type="text" placeholder="username" class="placeholder:italic placeholder:text-slate-400 rounded-md p-2 mt-4 shadow-sm focus:outline-none focus:border-sky-500 focus:ring-sky-500 focus:ring-1 float-right mr-4"/>
+    </Accordion>
 </div>
 </main>
 
@@ -76,4 +115,14 @@
   @tailwind base;
   @tailwind components;
   @tailwind utilities;
+
+
+  body {
+    padding: 0;
+  }
+
+  :global(.accordion-item) {
+    border-bottom: 1px solid rgb(209 213 219);
+  }
+
 </style>
