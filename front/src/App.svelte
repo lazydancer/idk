@@ -85,7 +85,7 @@
               <img src="https://picsum.photos/100?random={item.key}" class="flex-none w-8" alt="Cover"/>
               <h2 class="flex-1 px-6 w-72 pt-1">{ item.displayName }</h2>
               {#if item.orderCount > 0}
-              <p class="flex-1 text-sm text-gray-500 text-right pt-1.5 pr-2">In order: {item.orderCount}</p>
+                <p class="flex-1 text-sm text-gray-500 text-right pt-1.5 pr-2">In order: {item.orderCount}</p>
               {/if}
             </div>
             
@@ -105,15 +105,16 @@
               </div>
               <div class="flex-1">
                 <div class="flex flex-row float-right pr-2">
-                  <input 
-                    type="number"
-                    placeholder=1
-                    bind:value={item.orderTempTextBox}
-                    class="focus:ring-indigo-500 focus:border-indigo-500 shadow-sm sm:text-sm border-gray-300 rounded-md w-16 my-6 mx-2 pl-2"/>
 
-                  <button on:click={()=>addToOrder(item.key, item.orderTempTextBox)} class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
-                  focus:ring-offset-2 focus:ring-red-600 my-6">Add to Order</button>
-                
+                  <form on:submit|preventDefault={()=>addToOrder(item.key, item.orderTempTextBox)}>
+                    <input 
+                      type="number"
+                      bind:value={item.orderTempTextBox}
+                      class="focus:ring-indigo-500 focus:border-indigo-500 shadow-sm sm:text-sm border-gray-300 rounded-md w-16 h-9 pl-2"/>
+
+                    <button on:click={() => console.log('button clicked')} class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
+                    focus:ring-offset-2 focus:ring-red-600 my-6">Add to Order</button>
+                  </form>
 
                 </div>
               </div>
