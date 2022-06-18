@@ -138,7 +138,14 @@ fn list() -> &'static str {
         \"name\": \"cobblestone\",
         \"displayName\": \"Cobblestone\",
         \"metadata\": 0,
-        \"nbt\": null,
+        \"nbt\": {  \"key\": 14,
+                    \"name\": \"cobblestone\",
+                    \"displayName\": \"Cobblestone\",
+                    \"metadata\": 0,
+                    \"nbt\": null,
+                    \"available\": 12,
+                    \"group\": \"Mining\"
+                    },
         \"available\": 12,
         \"group\": \"Mining\"
     }
