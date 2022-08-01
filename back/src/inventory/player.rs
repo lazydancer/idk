@@ -3,7 +3,7 @@ use std::net::TcpStream;
 use std::error::Error;
 
 
-use crate::item::{Item, json_to_items};
+use crate::inventory::item::{Item, json_to_items};
 
 
 pub struct Player {

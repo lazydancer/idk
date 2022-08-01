@@ -10,12 +10,21 @@
 
   let displayOrder = false;
 
-  $: visibleItems = items;
+  let visibleItems = [];
 
   onMount(async () => {
     const res = await fetch(`http://localhost:8000/api/list`);
     items = await res.json();
+    items = items.items
+    console.log("Hello")
+    console.log(items)
+
+
     items = items.map(v => ({...v, orderTempTextBox: 1, orderCount: 0}))
+    items.forEach((item, i) => {item.key = i + 1;});
+
+    visibleItems = items;
+
   });
 
   function changeGroup(set_group) {
@@ -31,6 +40,8 @@
   }
 
   function addToOrder(key, count) {
+    console.log(count)
+
     for(let item of items) {
       if(item.key === key) {
         if( item.orderCount + count > 0 ) {
@@ -40,6 +51,7 @@
         }
 
         items = items
+        visibleItems = visibleItems
         return;
       }
     }
@@ -47,16 +59,22 @@
 
   $: orderLength = items.filter(item => item.orderCount > 0).length; 
 
+
+
+  let ordered = false
+  let ordered_message = ""
+
+  function submitOrder() {
+    ordered = true
+    ordered_message = "Preparing items at Chest 1"
+  }
+
+
 </script>
-
-
-<header class="flex flex-row max-w-none mx-auto px-12 py-4 border-b border-gray-300 bg-white sticky top-0">
-  <h1 class="flex-1 text-left text-4xl font-extrabold text-red-700">IDK</h1>
-</header>
-
 
 <main class="flex flex-row items-start px-12 py-6 max-w-none mx-auto">
   <ul class="text-gray-900 text-sm visited:text-gray-900 pr-10 h-screen fixed top-30 w-40">
+    <h1 class="text-left text-4xl font-extrabold text-red-700 mb-3 pb-3 border-b border-gray-300">IDK</h1>
 
       <li class="border-b border-gray-300 pb-3">
         {#if displayOrder}
@@ -83,7 +101,7 @@
         <AccordionItem key={item.key}>
             <div slot='header' class="flex flex-row py-3">
               <img src="https://picsum.photos/100?random={item.key}" class="flex-none w-8" alt="Cover"/>
-              <h2 class="flex-1 px-6 w-72 pt-1">{ item.displayName }</h2>
+              <h2 class="flex-1 px-6 w-72 pt-1">{ item.display_name }</h2>
               {#if item.orderCount > 0}
                 <p class="flex-1 text-sm text-gray-500 text-right pt-1.5 pr-2">In order: {item.orderCount}</p>
               {/if}
@@ -106,15 +124,22 @@
               <div class="flex-1">
                 <div class="flex flex-row float-right pr-2">
 
-                  <form on:submit|preventDefault={()=>addToOrder(item.key, item.orderTempTextBox)}>
-                    <input 
-                      type="number"
-                      bind:value={item.orderTempTextBox}
-                      class="focus:ring-indigo-500 focus:border-indigo-500 shadow-sm sm:text-sm border-gray-300 rounded-md w-16 h-9 pl-2"/>
+                   <button on:click={() => addToOrder(item.key, 1)} class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
+                    focus:ring-offset-2 focus:ring-red-600 my-6 ml-1">+1</button>
+                    <button on:click={() => addToOrder(item.key, 64)} class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
+                    focus:ring-offset-2 focus:ring-red-600 my-6 ml-1">+64</button>
+                    <form on:submit|preventDefault={()=>addToOrder(item.key, item.orderTempTextBox)}>
 
-                    <button on:click={() => console.log('button clicked')} class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
-                    focus:ring-offset-2 focus:ring-red-600 my-6">Add to Order</button>
-                  </form>
+                      <input 
+                        type="number"
+                        bind:value={item.orderTempTextBox}
+                        class="focus:ring-indigo-500 focus:border-indigo-500 shadow-sm sm:text-sm border-gray-300 rounded-md w-16 h-9 pl-2 ml-1 py-2 my-6"
+                        placeholder="+x" />
+                    </form>
+
+
+                  <button on:click={()=>addToOrder(item.key, -item.orderCount)} class="ml-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
+                    focus:ring-offset-2 focus:ring-red-600 my-6">Clear</button>
 
                 </div>
               </div>
@@ -124,20 +149,33 @@
     </Accordion>
 
 
-  {#if displayOrder}
+    {#if displayOrder}
+      {#if !ordered}
+        <div class="flex flex-row pt-12">
+          <input 
+            type="text"
+            placeholder="Username"
+            class="focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md mr-4 pl-4"/>
 
+            <button on:click={()=>submitOrder()} class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-600">
+              Withdraw
+            </button>
+        </div>
+    {:else} 
+        <div class="flex flex-row pt-12">
+          <input 
+            type="text"
+            placeholder="Username"
+            class="focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md mr-4 pl-4"/>
 
-  <div class="flex flex-row float-right pt-12">
-    <input 
-      type="text"
-      placeholder="Username"
-      class="focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md mr-4 pl-4"/>
-    <button class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-600">
-      Withdraw
-    </button>
-  </div>
-
+            <button class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm text-white bg-red-700" disabled>
+              Ordered
+            </button>
+        </div>
+          <p class="float-right text-l font-bold py-4 px-2">{ordered_message}!</p>
+    {/if}
   {/if}
+
 
 </div>
 

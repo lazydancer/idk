@@ -40,20 +40,20 @@ input, button, select, textarea {
 	border-radius: 2px;
 }
 
-input:disabled {
+/*input:disabled {
 	color: #ccc;
 }
-
+*/
 button {
 	color: #333;
 	background-color: #f4f4f4;
 	outline: none;
 }
-
+/*
 button:disabled {
 	color: #999;
 }
-
+*/
 button:not(:disabled):active {
 	background-color: #ddd;
 }
