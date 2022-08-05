@@ -7,167 +7,33 @@ use rocket::tokio::task;
 
 use std::{thread, time};
 
-mod inventory;
+use crate::item::{ItemGrouped};
 
-struct Tx(flume::Sender<String>);
-struct Rx(flume::Receiver<String>);
+
+mod inventory;
+mod item;
+mod player;
+
+mod tests;
+
+struct Tx(flume::Sender<Vec<ItemGrouped>>);
+struct Rx(flume::Receiver<Vec<ItemGrouped>>);
 
 
 #[get("/api/list")]
 async fn list() -> String {
-    let inventory = inventory::inventory::Inventory::init().await;
-    let inventory_json = serde_json::to_string(&inventory.unwrap()).unwrap();
+    let list = inventory::Inventory::list().await.unwrap();
+    let inventory_json = serde_json::to_string(&list).unwrap();
 
     inventory_json
-    // "[{
-    //     \"key\": 0,
-    //     \"name\": \"stone\",
-    //     \"displayName\": \"Stone\",
-    //     \"metadata\": 0,
-    //     \"nbt\": null,
-    //     \"available\": 12,
-    //     \"group\": \"Natural\"
-    // },
-    // {
-    //     \"key\": 1,
-    //     \"name\": \"grass\",
-    //     \"displayName\": \"Grass\",
-    //     \"metadata\": 0,
-    //     \"nbt\": null,
-    //     \"available\": 12,
-    //     \"group\": \"Natural\"
-    // },
-    // {
-    //     \"key\": 2,
-    //     \"name\": \"dirt\",
-    //     \"displayName\": \"Dirt\",
-    //     \"metadata\": 0,
-    //     \"nbt\": null,
-    //     \"available\": 12,
-    //     \"group\": \"Mob Drops\"
-    // },
-    // {
-    //     \"key\": 3,
-    //     \"name\": \"wooden_pickaxe\",
-    //     \"displayName\": \"Wooden Pickaxe\",
-    //     \"metadata\": 0,
-    //     \"nbt\": null,
-    //     \"available\": 12,
-    //     \"group\": \"Mob Drops\"
-    // },
-    // {
-    //     \"key\": 4,
-    //     \"name\": \"cobblestone\",
-    //     \"displayName\": \"Cobblestone\",
-    //     \"metadata\": 0,
-    //     \"nbt\": null,
-    //     \"available\": 12,
-    //     \"group\": \"Mining\"
-    // },
-    // {
-    //     \"key\": 5,
-    //     \"name\": \"stone\",
-    //     \"displayName\": \"Stone\",
-    //     \"metadata\": 0,
-    //     \"nbt\": null,
-    //     \"available\": 12,
-    //     \"group\": \"Natural\"
-    // },
-    // {
-    //     \"key\": 6,
-    //     \"name\": \"grass\",
-    //     \"displayName\": \"Grass\",
-    //     \"metadata\": 0,
-    //     \"nbt\": null,
-    //     \"available\": 12,
-    //     \"group\": \"Natural\"
-    // },
-    // {
-    //     \"key\": 7,
-    //     \"name\": \"dirt\",
-    //     \"displayName\": \"Dirt\",
-    //     \"metadata\": 0,
-    //     \"nbt\": null,
-    //     \"available\": 12,
-    //     \"group\": \"Mob Drops\"
-    // },
-    // {
-    //     \"key\": 8,
-    //     \"name\": \"wooden_pickaxe\",
-    //     \"displayName\": \"Wooden Pickaxe\",
-    //     \"metadata\": 0,
-    //     \"nbt\": null,
-    //     \"available\": 12,
-    //     \"group\": \"Mob Drops\"
-    // },
-    // {
-    //     \"key\": 9,
-    //     \"name\": \"cobblestone\",
-    //     \"displayName\": \"Cobblestone\",
-    //     \"metadata\": 0,
-    //     \"nbt\": null,
-    //     \"available\": 12,
-    //     \"group\": \"Mining\"
-    // },
-    // {
-    //     \"key\": 10,
-    //     \"name\": \"stone\",
-    //     \"displayName\": \"Stone\",
-    //     \"metadata\": 0,
-    //     \"nbt\": null,
-    //     \"available\": 12,
-    //     \"group\": \"Natural\"
-    // },
-    // {
-    //     \"key\": 11,
-    //     \"name\": \"grass\",
-    //     \"displayName\": \"Grass\",
-    //     \"metadata\": 0,
-    //     \"nbt\": null,
-    //     \"available\": 12,
-    //     \"group\": \"Natural\"
-    // },
-    // {
-    //     \"key\": 12,
-    //     \"name\": \"dirt\",
-    //     \"displayName\": \"Dirt\",
-    //     \"metadata\": 0,
-    //     \"nbt\": null,
-    //     \"available\": 12,
-    //     \"group\": \"Mob Drops\"
-    // },
-    // {
-    //     \"key\": 13,
-    //     \"name\": \"wooden_pickaxe\",
-    //     \"displayName\": \"Wooden Pickaxe\",
-    //     \"metadata\": 0,
-    //     \"nbt\": null,
-    //     \"available\": 12,
-    //     \"group\": \"Mob Drops\"
-    // },
-    // {
-    //     \"key\": 14,
-    //     \"name\": \"cobblestone\",
-    //     \"displayName\": \"Cobblestone\",
-    //     \"metadata\": 0,
-    //     \"nbt\": {  \"key\": 14,
-    //                 \"name\": \"cobblestone\",
-    //                 \"displayName\": \"Cobblestone\",
-    //                 \"metadata\": 0,
-    //                 \"nbt\": null,
-    //                 \"available\": 12,
-    //                 \"group\": \"Mining\"
-    //                 },
-    //     \"available\": 12,
-    //     \"group\": \"Mining\"
-    // }
-    // ]"
 }
 
 
-#[get("/api/order")]
-fn order(tx: &State<Tx>) {
-    tx.0.try_send("recieved".to_string());
+#[post("/api/order", data="<input>")]
+fn order(input: String, tx: &State<Tx>) {
+    let v: Vec<ItemGrouped> = serde_json::from_str(&input).unwrap();
+
+    tx.0.try_send(v);
 }
 
 pub struct CORS;
@@ -193,11 +59,6 @@ impl Fairing for CORS {
 
 
 async fn our_async_program(rx: Rx) {
-    // let inventory = inventory::inventory::Inventory::init().await;
-    // let inventory_json = serde_json::to_string(&inventory.unwrap()).unwrap();
-
-    // println!("{:?}", inventory_json);
-
     loop {
         thread::sleep(time::Duration::from_millis(5000));
         println!("Rx try recv {:?}!", rx.0.try_recv());
