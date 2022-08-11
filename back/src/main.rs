@@ -7,7 +7,7 @@ use rocket::tokio::task;
 
 use std::{thread, time};
 
-use crate::item::{ItemGrouped};
+use crate::item::{Item};
 
 
 mod inventory;
@@ -16,8 +16,8 @@ mod player;
 
 mod tests;
 
-struct Tx(flume::Sender<Vec<ItemGrouped>>);
-struct Rx(flume::Receiver<Vec<ItemGrouped>>);
+struct Tx(flume::Sender<Vec<Item>>);
+struct Rx(flume::Receiver<Vec<Item>>);
 
 
 #[get("/api/list")]
@@ -28,10 +28,9 @@ async fn list() -> String {
     inventory_json
 }
 
-
 #[post("/api/order", data="<input>")]
 fn order(input: String, tx: &State<Tx>) {
-    let v: Vec<ItemGrouped> = serde_json::from_str(&input).unwrap();
+    let v: Vec<Item> = serde_json::from_str(&input).unwrap();
 
     tx.0.try_send(v);
 }
@@ -54,8 +53,6 @@ impl Fairing for CORS {
         response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
     }
 }
-
-
 
 
 async fn our_async_program(rx: Rx) {

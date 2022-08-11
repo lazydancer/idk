@@ -12,7 +12,7 @@ use serde_json::Value;
 
 
 use crate::player::{Player, MoveItem};
-use crate::item::{Item, ItemGrouped};
+use crate::item::Item;
 
 
 #[derive(Debug, Serialize)]
@@ -25,13 +25,11 @@ impl Inventory {
 	pub async fn init() -> Result<Inventory, tokio_postgres::Error> {
 		let (client, connection) = tokio_postgres::connect("postgresql://mc-inventory:pineapple@localhost", NoTls).await?;
 		
-
 		tokio::spawn(async move {
         	if let Err(e) = connection.await {
             	eprintln!("connection error: {}", e);
         	}
     	});
-
 
 		let items = client.query("SELECT metadata, nbt, name, display_name, stack_size, count, chest_x, chest_y, chest_z, slot FROM items", &[]).await.unwrap().iter().map( 
 			|row| Item { 
@@ -53,63 +51,8 @@ impl Inventory {
 
 	}
 
-	pub async fn list() -> Result<Vec<ItemGrouped>, tokio_postgres::Error> {
 
-		let (client, connection) = tokio_postgres::connect("postgresql://mc-inventory:pineapple@localhost", NoTls).await?;
-		
-
-		tokio::spawn(async move {
-        	if let Err(e) = connection.await {
-            	eprintln!("connection error: {}", e);
-        	}
-    	});
-
-
-		let items: Vec<ItemGrouped> = client.query("SELECT metadata, nbt, name, MAX(display_name), SUM(count) FROM items GROUP BY metadata, nbt, name", &[]).await.unwrap().iter().map( |row| {
-			
-			println!("{:?}", row);
-			ItemGrouped {
-				metadata: row.get(0),
-		        nbt: row.get(1),
-		        name: row.get(2),
-		        display_name: row.get(3),
-		        count: row.get(4),
-			}
-		}
-
-		).collect();
-
-		Ok(items)
-
-
-	}
-
-
-	// pub fn new() -> Inventory {
-	// 	let mut client = Client::connect("postgresql://mc-inventory:pineapple@localhost", NoTls).unwrap();
-	// 	let items = client.query("SELECT metadata, nbt, name, display_name, stack_size, count, chest_x, chest_y, chest_z, slot FROM items", &[]).unwrap().iter().map( 
-	// 		|row| Item { 
-	// 	        metadata: row.get(0),
-	// 	        nbt: row.get(1),
-	// 	        name: row.get(2),
-	// 	        display_name: row.get(3),
-	// 	        stack_size: row.get(4),
-	// 	        count: row.get(5),
-	// 	        chest_x: row.get(6),
-	// 	        chest_y: row.get(7),
-	// 	        chest_z: row.get(8),
-	// 	        slot: row.get(9), 
-	// 		}
-	// 	).collect();
-
-
-	// 	Inventory { items }
-
-	// }
-
-
-
-	// pub fn take_inventory() -> Inventory {
+		// pub fn take_inventory() -> Inventory {
 
 	// 	let player = Player::new();
 
@@ -151,7 +94,33 @@ impl Inventory {
 	// }
 
 
- 
+	pub async fn list() -> Result<Vec<Item>, tokio_postgres::Error> {
+		let (client, connection) = tokio_postgres::connect("postgresql://mc-inventory:pineapple@localhost", NoTls).await?;	
+
+		tokio::spawn(async move {
+        	if let Err(e) = connection.await {
+            	eprintln!("connection error: {}", e);
+        	}
+    	});
+
+		let items: Vec<Item> = client.query("SELECT metadata, nbt, name, MAX(display_name), SUM(count) FROM items GROUP BY metadata, nbt, name", &[]).await.unwrap().iter().map( |row| {
+			
+			println!("{:?}", row);
+			
+			Item::new_without_location(
+				row.get(0), // metadata
+		        row.get(1), // nbt
+		        row.get(2), // name
+		        row.get(3), // display_name
+		        row.get(4), // count
+			)
+		}
+
+		).collect();
+
+		Ok(items)
+	}
+
 
 	// pub fn deposit(&self, chest: [i32; 3]) {
 	// 	let player = Player::new();
@@ -278,12 +247,40 @@ impl Inventory {
 
 	// }
 
-	// pub fn confirm(&self) {
-	// 	unimplemented!();
-	// }
+
+	// Helpper functions
+
+	// Private, public for testing
+	pub fn find(&self, items: Vec<Item>) -> Result<Vec<Item>, Box<dyn Error>> {
+		let mut result: Vec<Item> = vec![];
+		for item in items {
+			let mut count = item.count;
+
+			let inv_items = self.items.clone();
+
+			for mut inventory_item in inv_items.into_iter().filter(|i| i.matches(&item)) {
+				
+				if count > inventory_item.count {
+	 				count -= inventory_item.count;
+					result.push(inventory_item)
+				} else {
+					//partial stack
+					inventory_item.count = count;
+					result.push(inventory_item);
+					continue;
+				}
+	 		
+	 		}
+		
+		}
+
+		println!("{:?}", result);
+
+		Ok(result)
+	}
 
 
-	// pub fn inventory_spaces() -> Vec<[i32; 3]> {
+		// pub fn inventory_spaces() -> Vec<[i32; 3]> {
 
 	// 	let offset = [186, 78, 174];
 	// 	let height = 6;
@@ -338,4 +335,12 @@ impl Inventory {
 
 	// }
 	
+
+
+
 }
+
+
+
+
+	

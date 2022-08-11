@@ -69,7 +69,11 @@
 
   async function submitOrder() {
     let order_item_list = items.filter(it => it.orderCount > 0).map(({count, key, orderTempTextBox, ...keepAttrs}) => keepAttrs)
-    order_item_list = order_item_list.map(({orderCount, ...rest}) => ({...rest, count: orderCount }) )
+    order_item_list = order_item_list.map(({orderCount, ...rest}) => ({...rest, count: orderCount}) )
+    
+    // Extra "stuff" to keep one item type
+    order_item_list = order_item_list.map(({...rest}) => ({...rest, stack_size: 0, chest_x: 0, chest_y: 0, chest_z: 0, slot: 0}) )
+
 
     console.log(order_item_list);
 
@@ -86,7 +90,9 @@
 </script>
 
 <header class="flex flex-row max-w-none mx-auto px-12 py-4 border-b border-gray-300 bg-white sticky top-0">
-  <h1 class="flex-1 text-left text-4xl font-extrabold text-red-700">IDK</h1>
+  <h1 class="flex-1 text-left text-4xl font-extrabold text-red-700" style="max-width: 76px; padding: 4px; margin-right: 60px;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 9 5" shape-rendering="crispEdges"><path stroke="#c40424" d="M0 0h1m3 0h1m1 0h1M4 1h1m1 0h1M0 2h1m2 0h2m1 0h1m1 0h1M0 3h1m1 0h1m1 0h1m1 0h2M0 4h1m1 0h3m1 0h1m1 0h1"/></svg>
+  </h1>
   <form class="flex items-center">   
     <label for="simple-search" class="sr-only">Search</label>
     <div class="relative w-full">
