@@ -3,10 +3,7 @@ use std::error::Error;
 use rocket::tokio;
 use tokio_postgres;
 use tokio_postgres::NoTls;
-use serde::{Deserialize, Serialize};
-
-
-use std::collections::HashMap;
+use serde::Serialize;
 
 use serde_json::Value;
 

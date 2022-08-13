@@ -25,9 +25,7 @@ struct Rx(flume::Receiver<Vec<Item>>);
 #[get("/api/list")]
 async fn list() -> String {
     let list = inventory::Inventory::list().await.unwrap();
-    let inventory_json = serde_json::to_string(&list).unwrap();
-
-    inventory_json
+    serde_json::to_string(&list).unwrap()
 }
 
 #[post("/api/order", data="<input>")]
@@ -58,12 +56,14 @@ impl Fairing for CORS {
 
 
 async fn our_async_program(rx: Rx) {
-    // let inventory = Inventory::init().await.unwrap();
+    let inventory = Inventory::init().await.unwrap();
+    println!("{:?}", inventory);
     loop {
         thread::sleep(time::Duration::from_millis(5000));
         match rx.0.try_recv() {
             Err(x) => println!("Rx try recv err {:?}!", x),
-            Ok(x) => println!("Rx try recv err {:?}!", Inventory::init().await.unwrap().withdraw(x, [20, 83, 129]).await.unwrap()),
+            Ok(x) => println!("Rx try recv err {:?}!", x),
+            // Ok(x) => println!("Rx try recv err {:?}!", Inventory::init().await.unwrap().withdraw(x, [20, 83, 129]).await.unwrap()),
         }
 
     }

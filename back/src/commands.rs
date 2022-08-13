@@ -24,7 +24,7 @@ pub fn group_moves(commands: Vec<MoveItem>) -> Vec<Msg> {
     for chunk in commands.chunks(27) {
 
         let mut inventory: [Option<MoveItem>; 27] = Default::default();
-        let mut prev_chest: Option<[i32; 3]> = None;
+        let mut prev_chest: Option<[i32; 3]> = None; 
 
         for c in chunk {
 
