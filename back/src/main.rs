@@ -7,12 +7,14 @@ use rocket::tokio::task;
 
 use std::{thread, time};
 
-use crate::item::{Item};
+use crate::item::Item;
+use crate::inventory::Inventory;
 
 
 mod inventory;
 mod item;
 mod player;
+mod commands;
 
 mod tests;
 
@@ -56,9 +58,14 @@ impl Fairing for CORS {
 
 
 async fn our_async_program(rx: Rx) {
+    // let inventory = Inventory::init().await.unwrap();
     loop {
         thread::sleep(time::Duration::from_millis(5000));
-        println!("Rx try recv {:?}!", rx.0.try_recv());
+        match rx.0.try_recv() {
+            Err(x) => println!("Rx try recv err {:?}!", x),
+            Ok(x) => println!("Rx try recv err {:?}!", Inventory::init().await.unwrap().withdraw(x, [20, 83, 129]).await.unwrap()),
+        }
+
     }
 
 }

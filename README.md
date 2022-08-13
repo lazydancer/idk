@@ -23,3 +23,8 @@ Base action performer, listens for requests from inventory
 - Withdraw
 2021-06-16:
 - Deposit and withdraw less than full stacks 
+2021-08-12:
+- Website built
+- Front end sends widthdraw message to backend
+- Integrated inventory with backend, connected through queue
+- Store redesigned

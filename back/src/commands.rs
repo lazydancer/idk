@@ -1,49 +1,4 @@
-use std::io::{self, BufRead, Write};
-use std::net::TcpStream;
-use std::error::Error;
-
-
-use crate::item::{Item, json_to_items};
-
-
-pub struct Player {
-    // location: [i32; 3],
-}
-
-
-impl Player {
-
-    pub fn new() -> Player {
-        Player {}
-    }
-
-    pub fn open(&self, chest: &[i32; 3]) -> Result<Vec<Item>, Box<dyn Error>> {
-        send_message(&Msg::Open(*chest))?;
-        let response = send_message(&Msg::Log)?;
-        send_message(&Msg::Close)?;
-        Ok(json_to_items(&response))
-    }
-
-    pub fn move_position(&self, position: &[i32; 2]) {
-        send_message(&Msg::Move(*position)).unwrap();
-    }
-
-    pub fn run(&self, commands: Vec<MoveItem>) -> Result<(), Box<dyn Error>> {
-        let msgs = group_moves(commands);
-        println!("result: {:?}", &msgs);
-
-        for m in msgs {
-            send_message(&m)?;
-        }
-
-        Ok(())
-    }
-
-
-    pub fn test(&self) {
-        send_message(&Msg::Move([187, 172])).unwrap();
-    }
-}
+use crate::player::Msg;
 
 #[derive(Debug, Clone, Copy)]
 pub struct MoveItem {
@@ -57,9 +12,7 @@ pub struct MoveItem {
     pub amount: i32,
 }
 
-
-
-fn group_moves(commands: Vec<MoveItem>) -> Vec<Msg> {
+pub fn group_moves(commands: Vec<MoveItem>) -> Vec<Msg> {
 
     // Group common from chests together as much as possible
     // commands.sort(from_chest);
@@ -139,43 +92,3 @@ fn group_moves(commands: Vec<MoveItem>) -> Vec<Msg> {
     messages
 
 }
-
-
-#[derive(Debug)]
-pub enum Msg {
-    Open([i32; 3]),
-    Close,
-    LClick(i32),
-    RClick(i32),
-    Move([i32; 2]),
-    Log,
-}
-
-fn send_message(msg: &Msg) -> Result<String, Box<dyn Error>> {
-    let mut stream = TcpStream::connect("127.0.0.1:1337").unwrap();
-
-
-    let message = match msg {
-        Msg::Open(chest) => format!("open {} {} {}", chest[0], chest[1], chest[2]),     
-        Msg::Log => "log".to_string(),
-        Msg::LClick(slot) => format!("lclick {}", slot),
-        Msg::RClick(slot) => format!("rclick {}", slot),
-        Msg::Move(location) => format!("move {} {}", location[0], location[1]),
-        Msg::Close => "close".to_string(),
-    };
-
-    stream.write_all(message.as_bytes())?;
-
-    const DEFAULT_BUF_SIZE: usize = 8 * 1024 * 8;
-    let mut reader = io::BufReader::with_capacity(DEFAULT_BUF_SIZE, &mut stream);
-
-    let received: Vec<u8>  = reader.fill_buf().unwrap().to_vec();
-
-    reader.consume(received.len());
-
-    Ok(String::from_utf8(received).unwrap())
-}
-
-
-
-// let items: Vec<Item> = 

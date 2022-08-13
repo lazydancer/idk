@@ -18,14 +18,14 @@ pub struct Item {
 
 
 impl Item  {
-    pub fn new_without_location(metadata: i32, nbt: Value, name: String, display_name: String, count: i32) -> Item {
+    pub fn new_without_location(metadata: i32, nbt: Value, name: String, display_name: String, count: i64) -> Item {
         Item {
             metadata,
             nbt,
             name,
             display_name,
             stack_size: 0,
-            count,
+            count: count.try_into().unwrap(),
             chest_x: 0,
             chest_y: 0,
             chest_z: 0,

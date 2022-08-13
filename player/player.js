@@ -3,6 +3,15 @@ const vec3 = require('vec3')
 
 require('dotenv').config()
 
+
+const BUILDING = {
+	location: [16, 83, 129],
+	width: 3,
+	depth: 7,
+	facing: [0,0,1],
+	right: [1,0,0], // this could be worked out by math, but I'm lazy
+}
+
 class Player {
 	constructor() {
 		this.bot = mineflayer.createBot({
@@ -87,7 +96,8 @@ class Player {
 
 
 		const move_line = async (x, z) =>  {
-			let position = vec3(x + 0.5, 78, z + 0.5)
+			console.log('move line', x, z)
+			let position = vec3(x + 0.5, BUILDING['location'][1], z + 0.5)
 
 			await this.bot.lookAt(position);
 			// await this.bot.waitForTicks(10);
@@ -111,20 +121,20 @@ class Player {
 
 		}
 
-		// This is not ideal but generate the map each time
-		const array1 = [...Array(236-128 + 1).keys()].map(x => [173    , 128 + x])
-		const array2 = [...Array(227-119 + 1).keys()].map(x => [119 + x, 182    ])
-		const array3 = [ 
-			[174, 176], [175, 176], [176, 176], [177, 176], [178, 176], [179, 176], 
-			[179, 176], [179, 175], [179, 174], [179, 173], [179, 172], [179, 171], [179, 170], [179, 169], 
-			[179, 169], [180, 169], [181, 169], [182, 169], [183, 169], [184, 169], 
-			[184, 169], [184, 170], [184, 171], [184, 172], [184, 173], [184, 174], [184, 175], [184, 176],
-			[184, 175], [185, 175], [186, 175], [187, 175], [188, 175],
-			[184, 172], [185, 172], [186, 172], [187, 172], [188, 172],
-			[184, 169], [185, 169], [186, 169], [187, 169], [188, 169],
-		]
+		const walkway = [...Array(3*BUILDING['width']).keys()].map(x => 
+			[BUILDING['location'][0] + (2+x)*BUILDING['right'][0] - BUILDING['facing'][0], 
+			 BUILDING['location'][2] + (2+x)*BUILDING['right'][2] - BUILDING['facing'][2]]
+		)
 
-		let map = [...new Set(array1.concat(array2, array3))].sort()
+		const rows = [...Array(BUILDING['width']).keys()].map(w => 
+		 	[...Array(BUILDING['depth']).keys()].map(d => 
+				[BUILDING['location'][0] + (2+3*w)*BUILDING['right'][0] - (d+2)*BUILDING['facing'][0], 
+				 BUILDING['location'][2] + (2+3*w)*BUILDING['right'][2] - (d+2)*BUILDING['facing'][2]]
+			)
+		).flat()
+
+		let map = walkway.concat(rows).sort()
+
 		let player_position = [Math.floor(this.bot.entity.position.x), Math.floor(this.bot.entity.position.z)]
 
 
