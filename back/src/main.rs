@@ -3,7 +3,6 @@
 use rocket::http::Header;
 use rocket::{Request, Response, State};
 use rocket::fairing::{Fairing, Info, Kind};
-use rocket::tokio::task;
 
 use std::{thread, time};
 
@@ -56,8 +55,8 @@ impl Fairing for CORS {
 
 
 async fn inventory_listener(rx: Rx) {
-    // let inventory = Inventory::init().await.unwrap();
-    // println!("{:?}", inventory);
+    let inventory = Inventory::init();
+    println!("{:?}", inventory.await.unwrap());
     loop {
         thread::sleep(time::Duration::from_millis(5000));
         match rx.0.try_recv() {
@@ -74,7 +73,7 @@ async fn inventory_listener(rx: Rx) {
 fn rocket() -> _ {
 
     let (tx, rx) = flume::unbounded();
-    task::spawn(inventory_listener(Rx(rx)));
+    rocket::tokio::spawn(inventory_listener(Rx(rx)));
 
     rocket::build()
         .manage(Tx(tx))

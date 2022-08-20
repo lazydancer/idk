@@ -40,7 +40,7 @@ for sheet in stylesheets:
 result = {}
 for a in items:
     pos_id = a.find("td", {"class": "row-icon"}).div["class"][1][6:]
-    name_id = a.find("td", {"class": "row-desc"}).find("span", {"class": "text-id"}).text.split(":")[1][:-1]
+    name_id = a.find("td", {"class": "row-desc"}).span.text.replace(" ","_").lower()
     pos = positions[pos_id]
 
     result[name_id] = pos
