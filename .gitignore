@@ -5,3 +5,4 @@ package-lock.json
 front/public/build/
 .env
 venv/
+dist/
