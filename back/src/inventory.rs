@@ -5,9 +5,6 @@ use tokio_postgres;
 use tokio_postgres::NoTls;
 use serde::Serialize;
 
-use serde_json::Value;
-
-
 use crate::player::{Player, MoveItem};
 use crate::item::Item;
 
@@ -49,7 +46,7 @@ impl Inventory {
 	}
 
 
-	pub async fn take_inventory() -> Result<Inventory, tokio_postgres::Error> {
+	pub async fn take_inventory() -> Result<(), tokio_postgres::Error> {
 
 		let player = Player::new();
 
@@ -83,13 +80,7 @@ impl Inventory {
 	        items.append(&mut chest_items);
 		}
 
-
-
-
-		Ok(Inventory { items })
-
-        // self.items = items;
-
+		Ok(())
 	}
 
 

@@ -1,6 +1,7 @@
 <script>
   import { Accordion, AccordionItem } from 'svelte-collapsible'
   import { onMount } from 'svelte';
+  import { get_image } from './image.js';
 
   let items = [];
 
@@ -19,7 +20,7 @@
     console.log(items)
 
 
-    items = items.map(v => ({...v, orderTempTextBox: 1, orderCount: 0}))
+    items = items.map(v => ({...v, orderTempTextBox: 1, orderCount: 0, imageLoc: get_image(v.name)}))
     items.forEach((item, i) => {item.key = i + 1;});
 
     visibleItems = items;
@@ -89,11 +90,21 @@
 
 </script>
 
-<header class="flex flex-row max-w-none mx-auto px-12 py-4 border-b border-gray-300 bg-white sticky top-0">
-  <h1 class="flex-1 text-left text-4xl font-extrabold text-red-700" style="max-width: 76px; padding: 4px; margin-right: 60px;">
+<svelte:head>
+	<title>Storage</title>
+  <link rel="icon" href="static/favicon.png" type="image/png">
+  <meta name="robots" content="noindex nofollow" />
+	<html lang="en" />
+</svelte:head>
+
+<header class="flex flex-row flex-nowrap max-w-none mx-auto px-12 py-4 border-b border-gray-300 bg-white sticky top-0">
+  
+  <h1 on:click={() => changeGroup({"g": "All"})} class="flex-1 text-left text-4xl font-extrabold text-red-700 cursor-pointer mr-20 p-1 w-20 flex-none">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 9 5" shape-rendering="crispEdges"><path stroke="#c40424" d="M0 0h1m3 0h1m1 0h1M4 1h1m1 0h1M0 2h1m2 0h2m1 0h1m1 0h1M0 3h1m1 0h1m1 0h1m1 0h2M0 4h1m1 0h3m1 0h1m1 0h1"/></svg>
+  
   </h1>
-  <form class="flex items-center">   
+  
+  <form class="items-center flex-1">   
     <label for="simple-search" class="sr-only">Search</label>
     <div class="relative w-full">
         <div class="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none">
@@ -101,26 +112,27 @@
         </div>
         <input type="text" id="simple-search" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search" required>
     </div>
-</form>
+  </form>
+
+  <div class="mx-5 mt-3 flex-1">
+    {#if displayOrder}
+      <span class="text-sm text-gray-900 cursor-pointer font-bold float-right">Order {orderLength}</span>
+    {:else}
+      <span on:click={()=>setOrder()} class="text-sm text-gray-900 cursor-pointer float-right">Order {orderLength}</span>
+    {/if}
+  </div>
+
 </header>
 
 <main class="flex flex-row items-start px-12 py-6 max-w-none mx-auto">
   <ul class="text-gray-900 text-sm visited:text-gray-900 pr-10 h-screen fixed top-30 w-40">
-
-      <li class="border-b border-gray-300 pb-3">
-        {#if displayOrder}
-          <a class="text-sm text-gray-900 cursor-pointer mt-4 font-bold">Order <p class="float-right pr-2 text-gray-500">{orderLength}</p></a>
-        {:else}
-          <a on:click={()=>setOrder()} class="text-sm text-gray-900 cursor-pointer mt-4">Order <p class="float-right pr-2 text-gray-500">{orderLength}</p></a>
-        {/if}
-    </li>
     <div class="h-3"></div>
     {#each groups as g}
       <li>
         {#if g == group}
-          <a on:click={() => changeGroup({g})} class="block py-1 cursor-pointer font-bold">{g}</a>
+          <span on:click={() => changeGroup({g})} class="block py-1 cursor-pointer font-bold">{g}</span>
         {:else}
-          <a on:click={() => changeGroup({g})} class="block py-1 cursor-pointer">{g}</a>
+          <span on:click={() => changeGroup({g})} class="block py-1 cursor-pointer">{g}</span>
         {/if}
       </li>
     {/each}
@@ -130,15 +142,17 @@
     <Accordion>
       {#each visibleItems as item}
         <AccordionItem key={item.key}>
-            <div slot='header' class="flex flex-row py-3">
-              <!-- <img src="https://picsum.photos/100?random={item.key}" class="flex-none w-8" alt="Cover"/> -->
+            <div slot='header' class="flex flex-row py-2">
+              <div class="mr-4" style="width: 37px; height: 37px; background: #8B8B8B; border: 2px solid; border-color: #373737 #FFF #FFF #373737">
+                <div style="width:32px; height:32px; background-image:url(static/InvSprite.webp); background-position: {item.imageLoc[0]}px {item.imageLoc[1]}px"></div>
+              </div>
               <h2 class="flex-1 w-72 pt-1">{ item.display_name }</h2>
-              <p class="flex-1 text-sm text-gray-500 text-right pt-1.5 pr-2">{item.count}</p>
+              <p class="flex-1 text-sm pt-1.5 pr-2">{item.count}</p>
 
               {#if item.orderCount > 0}
-                <p class="flex-1 text-sm text-gray-500 text-right pt-1.5 pr-2">In order: {item.orderCount}</p>
+                <p class="flex-1 text-sm pt-1.5 pr-2 font-bold">{item.orderCount}</p>
               {:else}
-                <p class="flex-1 text-sm text-gray-500 text-right pt-1.5 pr-2"></p>
+                <p class="flex-1 text-sm pt-1.5 pr-2"></p>
               {/if}
             </div>
             

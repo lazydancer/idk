@@ -55,9 +55,9 @@ impl Fairing for CORS {
 }
 
 
-async fn our_async_program(rx: Rx) {
-    let inventory = Inventory::init().await.unwrap();
-    println!("{:?}", inventory);
+async fn inventory_listener(rx: Rx) {
+    // let inventory = Inventory::init().await.unwrap();
+    // println!("{:?}", inventory);
     loop {
         thread::sleep(time::Duration::from_millis(5000));
         match rx.0.try_recv() {
@@ -74,7 +74,7 @@ async fn our_async_program(rx: Rx) {
 fn rocket() -> _ {
 
     let (tx, rx) = flume::unbounded();
-    task::spawn(our_async_program(Rx(rx)));
+    task::spawn(inventory_listener(Rx(rx)));
 
     rocket::build()
         .manage(Tx(tx))
