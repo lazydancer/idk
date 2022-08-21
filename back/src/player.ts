@@ -5,17 +5,17 @@ require('dotenv').config()
 
 
 const BUILDING = {
-	location: [16, 83, 129],
+	location: [15, 83, 130],
 	width: 3,
 	depth: 7,
-	facing: [0,0,1],
-	right: [1,0,0], // this could be worked out by math, but I'm lazy
+	// height: 6,
+	// facing: [0,0,1],
+	// right: [1,0,0], // this could be worked out by math, but I'm lazy
 }
 
 export class Player {
     bot: any
-    chest: any
-    chest_loc: any
+    opened_chest: any
 	constructor() {
 		this.bot = mineflayer.createBot({
 				host: "localhost",
@@ -23,18 +23,20 @@ export class Player {
 				password: process.env['MC_PASS'],
 				auth: 'microsoft' 
 			})
-		this.chest = null
-		this.chest_loc = null
+		this.opened_chest = null
 	}
 
-	async open (x: any, y: any, z: any)  {
-		this.chest = await this.bot.openChest(this.bot.blockAt(vec3(x, y, z)))
-		this.chest_loc = [x, y, z]
-		return "done";
-	}
+	async open (chest_type: string, chest_number: number)  {
+		console.log('open')
+		await this.move(this.standing_location(chest_type, chest_number))
 
-	async close()  {
-		this.bot.closeWindow(this.chest)
+		const location = this.chest_to_location(chest_type, chest_number)
+
+		console.log(location)
+
+		this.opened_chest = await this.bot.openChest(this.bot.blockAt(location))
+
+		console.log(this.opened_chest)
 		return "done";
 	}
 
@@ -48,7 +50,15 @@ export class Player {
 		return "done";
 	}
 
-	async move(x: any, z: any) {
+	async close()  {
+		this.bot.closeWindow(this.opened_chest)
+		return "done";
+	}
+
+	private async move(loc: any) {
+		let x = loc[0]
+		let z = loc[1]
+
 
 		function pathfind(start: any, dest: any, map: any) {
 			let queue = [[start, []]];
@@ -97,9 +107,6 @@ export class Player {
 			return [...new_path, path[ path.length-1 ]]
 		}
 
-
-
-
 		const move_line = async (x :any, z :any) =>  {
 			console.log('move line', x, z)
 			let position = vec3(x + 0.5, BUILDING['location'][1], z + 0.5)
@@ -127,14 +134,14 @@ export class Player {
 		}
 
 		const walkway = [...Array(3*BUILDING['width']).keys()].map(x => 
-			[BUILDING['location'][0] + (2+x)*BUILDING['right'][0] - BUILDING['facing'][0], 
-			 BUILDING['location'][2] + (2+x)*BUILDING['right'][2] - BUILDING['facing'][2]]
+			[BUILDING['location'][0] + 3 +x, 
+			 BUILDING['location'][2] - 2]
 		)
 
 		const rows = [...Array(BUILDING['width']).keys()].map(w => 
 		 	[...Array(BUILDING['depth']).keys()].map(d => 
-				[BUILDING['location'][0] + (2+3*w)*BUILDING['right'][0] - (d+2)*BUILDING['facing'][0], 
-				 BUILDING['location'][2] + (2+3*w)*BUILDING['right'][2] - (d+2)*BUILDING['facing'][2]]
+				[BUILDING['location'][0] + (3+3*w), 
+				 BUILDING['location'][2] - (d+3)]
 			)
 		).flat()
 
@@ -152,10 +159,14 @@ export class Player {
 		}
 
 		if (!includesArray(map, player_position)) {
+
+			console.log(map, player_position)
 			throw Error("player not on map")
 		}
 
 		if (!includesArray(map, [x,z])) {
+
+			console.log(map, [x, z])
 			throw Error("destination not on map")
 		}
 
@@ -172,7 +183,7 @@ export class Player {
 	}
 
 	async log() {
-		let slots = this.chest.containerItems()	
+		let slots = this.opened_chest.containerItems()	
 
 		slots.forEach((o: any) => {
 			o["display_name"] = o["displayName"];
@@ -185,14 +196,34 @@ export class Player {
 			// o["code"] = o["type"];
 			// delete o["type"]
 
-			o["chest_x"] = parseInt(this.chest_loc[0])
-			o["chest_y"] = parseInt(this.chest_loc[1])
-			o["chest_z"] = parseInt(this.chest_loc[2])
+			// o["chest_x"] = parseInt(this.chest_loc[0])
+			// o["chest_y"] = parseInt(this.chest_loc[1])
+			// o["chest_z"] = parseInt(this.chest_loc[2])
 		})
 
 		return JSON.stringify(slots);
 	}
 
-}
+	private chest_to_location(chest_type: string, chest_number: number): any {
 
-// module.exports = { Player }
+		const offset = [BUILDING['location'][0] + 2, BUILDING['location'][1], BUILDING['location'][2] - 3]
+
+		const x = Math.floor(chest_number / (6*BUILDING['depth'])) * 3
+		const y = chest_number % 6
+		const z = -1*(Math.floor(chest_number / 6 ) % BUILDING['depth'])
+
+		return vec3(x + offset[0], y + offset[1], z + offset[2])
+	}
+
+	private standing_location(chest_type: string, chest_number: number): any {
+
+		const offset = [BUILDING['location'][0] + 2, BUILDING['location'][1], BUILDING['location'][2] - 3]
+
+		const x = Math.floor(chest_number / (6*BUILDING['depth'])) * 3
+		const z = -1*(Math.floor(chest_number / 6 ) % BUILDING['depth'])
+
+		return [x + offset[0] + 1, z + offset[2]]
+	}
+
+
+}

@@ -8,13 +8,23 @@ var cors = require('cors')
 const app = express()
 
 
-app.use(cors())
+async function main() {
 
-app.get('/api/list', async function (req: Request, res: Response) {
-  const items = await getSummary()
-  res.send(items)
-})
+  app.use(cors())
 
-const p = new Player();
+  app.get('/api/list', async function (req: Request, res: Response) {
+    const items = await getSummary()
+    res.send(items)
+  })
 
-app.listen(8000)
+  const p = new Player();
+
+  await new Promise(r => setTimeout(r, 5000));
+
+  await p.open("", 20)
+
+  app.listen(8000)
+
+}
+
+main()
