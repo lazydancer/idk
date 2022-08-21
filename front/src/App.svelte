@@ -39,6 +39,7 @@
     group = null;
   }
 
+
   function addToOrder(key, count) {
     console.log(count)
 
@@ -85,6 +86,14 @@
   }
 
 
+  async function deposit() {
+    const res = await fetch(`http://localhost:8000/api/deposit`, {
+      method: 'POST',
+      body: JSON.stringify({station: 2}),
+      headers: { 'Content-Type': 'application/json'}
+    })
+  }
+
 </script>
 
 <svelte:head>
@@ -110,6 +119,11 @@
           <input type="text" id="simple-search" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search" required>
       </div>
     </form>
+
+    <div class="mx-5 mt-1 flex-1">
+        <button on:click={()=>deposit()} class="ml-2 px-4 py-2 border border-none shadow-sm text-sm  text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
+        focus:ring-offset-2 focus:ring-red-600 float-right">Deposit</button>
+    </div>
 
     <div class="mx-5 mt-1 flex-1">
       {#if orderLength == 0}

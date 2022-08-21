@@ -30,6 +30,11 @@ async function main() {
     inventory.withdraw(req.body, 0)
   })
 
+  app.post('/api/deposit', async function (req: Request, res: Response) {
+    console.log(req.body)
+    inventory.deposit(req.body['station'])
+  })
+
   // await new Promise(r => setTimeout(r, 5000));
   // inventory.inventory()
 
