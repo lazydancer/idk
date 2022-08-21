@@ -2,7 +2,7 @@ target
 _archive
 node_modules
 package-lock.json
-front/public/build/
+build/
 .env
 venv/
 dist/

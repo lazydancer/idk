@@ -1,6 +1,7 @@
 import { Request, Response } from "express"
 
-import {connectToDB} from './db'
+import { getSummary } from './db'
+import { Player } from './player';
 
 const express = require('express')
 var cors = require('cors')
@@ -9,15 +10,11 @@ const app = express()
 
 app.use(cors())
 
-app.get('/api/list', function (req: Request, res: Response) {
-  res.send('Hello World')
+app.get('/api/list', async function (req: Request, res: Response) {
+  const items = await getSummary()
+  res.send(items)
 })
 
-function sum (num1: number, num2: number){
-  return num1 + num2;
-}
-console.log(sum(8,4))
-
-connectToDB()
+const p = new Player();
 
 app.listen(8000)

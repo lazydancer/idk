@@ -7,13 +7,22 @@ const pool = new Pool({
     port: 5432
 })
 
-export const connectToDB = () => {
+
+export async function getItems(): Promise<any> {
     try {
-        pool.connect()
-        pool.query("SELECT * FROM items", (err: any, res: any) => {
-            console.log(res)
-        })
+        const a = await pool.query("SELECT * FROM items")
+        return a["rows"]
     } catch(err) {
         console.log(err)
     }
-}
+} 
+
+// Group items for total counts
+export async function getSummary(): Promise<any> {
+    try {
+        const a = await pool.query("SELECT metadata, nbt, name, MAX(display_name) as display_name, SUM(count) as count FROM items GROUP BY metadata, nbt, name")
+        return a["rows"]
+    } catch(err) {
+        console.log(err)
+    }
+} 
