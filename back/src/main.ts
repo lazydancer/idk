@@ -1,7 +1,7 @@
 import { Request, Response } from "express"
 
 import { getSummary } from './db'
-import { Player } from './player';
+
 
 const express = require('express')
 var cors = require('cors')

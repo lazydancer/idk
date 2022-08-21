@@ -26,7 +26,7 @@ export class Player {
 		this.opened_chest = null
 	}
 
-	async open (chest_type: string, chest_number: number)  {
+	async open(chest_type: string, chest_number: number)  {
 		console.log('open')
 		await this.move(this.standing_location(chest_type, chest_number))
 
@@ -206,23 +206,38 @@ export class Player {
 
 	private chest_to_location(chest_type: string, chest_number: number): any {
 
-		const offset = [BUILDING['location'][0] + 2, BUILDING['location'][1], BUILDING['location'][2] - 3]
+		if(chest_type == 'inventory') {
 
-		const x = Math.floor(chest_number / (6*BUILDING['depth'])) * 3
-		const y = chest_number % 6
-		const z = -1*(Math.floor(chest_number / 6 ) % BUILDING['depth'])
+			const offset = [BUILDING['location'][0] + 2, BUILDING['location'][1], BUILDING['location'][2] - 3]
 
-		return vec3(x + offset[0], y + offset[1], z + offset[2])
+			const x = Math.floor(chest_number / (6*BUILDING['depth'])) * 3
+			const y = chest_number % 6
+			const z = -1*(Math.floor(chest_number / 6 ) % BUILDING['depth'])
+
+			return vec3(x + offset[0], y + offset[1], z + offset[2])
+
+		}
+
+		if (chest_type == 'station') {
+			return vec3(BUILDING['location'][0] + 5 + 2*chest_number, BUILDING['location'][1], BUILDING['location'][1] - 1)
+		}
+
 	}
 
 	private standing_location(chest_type: string, chest_number: number): any {
 
-		const offset = [BUILDING['location'][0] + 2, BUILDING['location'][1], BUILDING['location'][2] - 3]
+		if(chest_type == 'inventory') {
+			const offset = [BUILDING['location'][0] + 2, BUILDING['location'][1], BUILDING['location'][2] - 3]
 
-		const x = Math.floor(chest_number / (6*BUILDING['depth'])) * 3
-		const z = -1*(Math.floor(chest_number / 6 ) % BUILDING['depth'])
+			const x = Math.floor(chest_number / (6*BUILDING['depth'])) * 3
+			const z = -1*(Math.floor(chest_number / 6 ) % BUILDING['depth'])
 
-		return [x + offset[0] + 1, z + offset[2]]
+			return [x + offset[0] + 1, z + offset[2]]
+		}
+
+		if (chest_type == 'station') {
+			return [BUILDING['location'][0] + 5 + 2*chest_number, BUILDING['location'][1] - 2]
+		}
 	}
 
 
