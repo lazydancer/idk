@@ -72,15 +72,12 @@
     let order_item_list = items.filter(it => it.orderCount > 0).map(({count, key, orderTempTextBox, ...keepAttrs}) => keepAttrs)
     order_item_list = order_item_list.map(({orderCount, ...rest}) => ({...rest, count: orderCount}) )
     
-    // Extra "stuff" to keep one item type
-    order_item_list = order_item_list.map(({...rest}) => ({...rest, stack_size: 0, chest_x: 0, chest_y: 0, chest_z: 0, slot: 0}) )
-
-
     console.log(order_item_list);
 
     const res = await fetch(`http://localhost:8000/api/order`, {
       method: 'POST',
-      body: JSON.stringify(order_item_list)
+      body: JSON.stringify(order_item_list),
+      headers: { 'Content-Type': 'application/json'}
     })
 
     ordered = true
@@ -110,15 +107,16 @@
           <div class="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none">
               <svg aria-hidden="true" class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path></svg>
           </div>
-          <input type="text" id="simple-search" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search" required>
+          <input type="text" id="simple-search" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search" required>
       </div>
     </form>
 
-    <div class="mx-5 mt-3 flex-1">
-      {#if displayOrder}
-        <span class="text-sm text-gray-900 cursor-pointer font-bold float-right">Order {orderLength}</span>
+    <div class="mx-5 mt-1 flex-1">
+      {#if orderLength == 0}
+        <button class="px-4 py-2 border border-gray text-sm text-gray-600 float-right cursor-default">Order: {orderLength}</button>
       {:else}
-        <span on:click={()=>setOrder()} class="text-sm text-gray-900 cursor-pointer float-right">Order {orderLength}</span>
+      <button on:click={()=>setOrder()} class="ml-2 px-4 py-2 border border-none shadow-sm text-sm  text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
+      focus:ring-offset-2 focus:ring-red-600 float-right">Order: {orderLength}</button>
       {/if}
     </div>
   </div>
@@ -173,21 +171,21 @@
               <div class="flex-1">
                 <div class="flex flex-row float-right pr-2">
 
-                   <button on:click={() => addToOrder(item.key, 1)} class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
+                   <button on:click={() => addToOrder(item.key, 1)} class="px-4 py-2 border border-transparent shadow-sm text-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
                     focus:ring-offset-2 focus:ring-red-600 my-6 ml-1">+1</button>
-                    <button on:click={() => addToOrder(item.key, 64)} class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
+                    <button on:click={() => addToOrder(item.key, 64)} class="px-4 py-2 border border-transparent shadow-sm text-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
                     focus:ring-offset-2 focus:ring-red-600 my-6 ml-1">+64</button>
                     <form on:submit|preventDefault={()=>addToOrder(item.key, item.orderTempTextBox)}>
 
                       <input 
                         type="number"
                         bind:value={item.orderTempTextBox}
-                        class="focus:ring-indigo-500 focus:border-indigo-500 shadow-sm sm:text-sm border-gray-300 rounded-md w-16 h-9 pl-2 ml-1 py-2 my-6"
+                        class="focus:ring-indigo-500 focus:border-indigo-500 shadow-sm sm:text-sm border-gray-300 w-16 h-9 pl-2 ml-1 py-2 my-6"
                         placeholder="+x" />
                     </form>
 
 
-                  <button on:click={()=>addToOrder(item.key, -item.orderCount)} class="ml-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
+                  <button on:click={()=>addToOrder(item.key, -item.orderCount)} class="ml-2 px-4 py-2 border border-transparent shadow-sm text-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
                     focus:ring-offset-2 focus:ring-red-600 my-6">Clear</button>
 
                 </div>
@@ -204,9 +202,9 @@
           <input 
             type="text"
             placeholder="Username"
-            class="focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md mr-4 pl-4"/>
+            class="focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 mr-4 pl-4"/>
 
-            <button on:click={()=>submitOrder()} class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-600">
+            <button on:click={()=>submitOrder()} class="px-4 py-2 border border-transparent shadow-sm text-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-600">
               Withdraw
             </button>
         </div>
@@ -215,9 +213,9 @@
           <input 
             type="text"
             placeholder="Username"
-            class="focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md mr-4 pl-4"/>
+            class="focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 mr-4 pl-4"/>
 
-            <button class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm text-white bg-red-700" disabled>
+            <button class="px-4 py-2 border border-transparent shadow-sm text-sm text-white bg-red-700" disabled>
               Ordered
             </button>
         </div>

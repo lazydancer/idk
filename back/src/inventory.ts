@@ -1,19 +1,39 @@
-import { Player } from './player';
-import { getItems } from './db'
+import { getItems, insert, remove} from './db'
+import * as actions from './actions'
+import { Pool } from 'pg';
 
 
-async function withdraw(items: any) {
-    const inventory = getItems();
-    find(inventory, inventory)
+export async function inventory() {
+    let items = await actions.take_inventory()
+
+    insert(items);
+
+}
+
+export async function withdraw(items: any, station: number) {
+    const inventory = await getItems();
+
+    let to_withdraw = find(items, inventory)
+
+    await actions.withdraw(to_withdraw, 1);
+
+    await remove(to_withdraw)
 
 }
 
 function find(items: any, inventory: any) {
     let result = [];
-    for (const item of items) {
+    
+    inventory.forEach((i: any) => {
+        i['available'] = i['count']
+    })
+
+    let item: any
+    for (item of items) {
         let count = item.count;
 
-        for (const inv_item in inventory) {
+        let inv_item: any
+        for (inv_item of inventory) {
             if ( !matches(item, inv_item) ){
                 continue;
             }
@@ -35,11 +55,11 @@ function find(items: any, inventory: any) {
 }
 
 function matches(item: any, other: any): boolean {
-       (item.name === other.name)  
+    return (item.name === other.name)  
     && (item.metadata === other.metadata)
     && (item.nbt === other.nbt)
 }
 
-async function deposit(chest: any) {
+async function deposit(station: number) {
     
 }

@@ -27,17 +27,18 @@ export class Player {
 	}
 
 	async open(chest_type: string, chest_number: number)  {
-		console.log('open')
+		if ( this.opened_chest != null ) {
+			await this.bot.closeWindow(this.opened_chest)
+			this.opened_chest = null
+		}
+
 		await this.move(this.standing_location(chest_type, chest_number))
 
 		const location = this.chest_to_location(chest_type, chest_number)
 
-		console.log(location)
-
 		this.opened_chest = await this.bot.openChest(this.bot.blockAt(location))
 
-		console.log(this.opened_chest)
-		return "done";
+		return this.log();
 	}
 
 	async lclick(slot: any) {
@@ -50,10 +51,10 @@ export class Player {
 		return "done";
 	}
 
-	async close()  {
-		this.bot.closeWindow(this.opened_chest)
-		return "done";
-	}
+	// async close()  {
+	// 	this.bot.closeWindow(this.opened_chest)
+	// 	return "done";
+	// }
 
 	private async move(loc: any) {
 		let x = loc[0]
@@ -182,26 +183,28 @@ export class Player {
 		return "done";
 	}
 
-	async log() {
+	private log() {
 		let slots = this.opened_chest.containerItems()	
 
-		slots.forEach((o: any) => {
+		slots.forEach((o:any) => {
 			o["display_name"] = o["displayName"];
-			delete o["displayName"]
-
 			o["stack_size"] = o["stackSize"];
-			delete o["stackSize"]
-
-			delete o["type"]
-			// o["code"] = o["type"];
-			// delete o["type"]
-
-			// o["chest_x"] = parseInt(this.chest_loc[0])
-			// o["chest_y"] = parseInt(this.chest_loc[1])
-			// o["chest_z"] = parseInt(this.chest_loc[2])
 		})
 
-		return JSON.stringify(slots);
+		slots = slots.map((o: any) => 
+			(({ display_name, count, metadata, name, nbt, slot, stack_size}) => ({ display_name, count, metadata, name, nbt, slot, stack_size}))(o))
+
+
+		return slots;
+	}
+
+	get_counts() {
+
+		return {
+			'inventory': BUILDING['width'] * BUILDING['depth'] * 6,
+			'station': 3,
+		}
+
 	}
 
 	private chest_to_location(chest_type: string, chest_number: number): any {
@@ -219,7 +222,7 @@ export class Player {
 		}
 
 		if (chest_type == 'station') {
-			return vec3(BUILDING['location'][0] + 5 + 2*chest_number, BUILDING['location'][1], BUILDING['location'][1] - 1)
+			return vec3(BUILDING['location'][0] + 5 + 2*chest_number, BUILDING['location'][1], BUILDING['location'][2] - 1)
 		}
 
 	}
@@ -236,7 +239,7 @@ export class Player {
 		}
 
 		if (chest_type == 'station') {
-			return [BUILDING['location'][0] + 5 + 2*chest_number, BUILDING['location'][1] - 2]
+			return [BUILDING['location'][0] + 5 + 2*chest_number, BUILDING['location'][2] - 2]
 		}
 	}
 

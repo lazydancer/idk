@@ -1,29 +1,40 @@
 import { Request, Response } from "express"
 
 import { getSummary } from './db'
+import { Player } from './player'
 
+import * as inventory from './inventory'
 
 const express = require('express')
 var cors = require('cors')
 const app = express()
 
+declare global {
+  var player: any;
+}
+
+global.player = new Player()
 
 async function main() {
 
   app.use(cors())
+  app.use(express.json())
 
   app.get('/api/list', async function (req: Request, res: Response) {
     const items = await getSummary()
     res.send(items)
   })
 
-  const p = new Player();
+  app.post('/api/order', async function (req: Request, res: Response) {
+    console.log(req.body)
+    inventory.withdraw(req.body, 0)
+  })
 
-  await new Promise(r => setTimeout(r, 5000));
-
-  await p.open("", 20)
+  // await new Promise(r => setTimeout(r, 5000));
+  // inventory.inventory()
 
   app.listen(8000)
+
 
 }
 

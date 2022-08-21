@@ -26,3 +26,24 @@ export async function getSummary(): Promise<any> {
         console.log(err)
     }
 } 
+
+export async function insert(items: any): Promise<any> {
+
+    for (const item of items) {
+        await pool.query("INSERT INTO items (metadata, name, display_name, stack_size, slot, count, nbt, chest) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+        [item.metadata, item.name, item.display_name, item.stack_size, item.slot, item.count, item.nbt, item.chest])
+    }
+
+}
+
+export async function remove(items: any): Promise<any> {
+
+    for (const item of items) {
+        await pool.query("UPDATE items SET count = $1 WHERE slot=$2 and chest=$3",
+        [item.available - item.count, item.slot, item.chest])
+    }
+
+    await pool.query("DELETE FROM items WHERE count = 0")
+
+
+}
