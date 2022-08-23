@@ -3,7 +3,8 @@ export async function take_inventory() {
     let result = []
 
     let counts = global.player.get_counts()
-    for (let i = 0; i < counts["inventory"]; i++) {
+    // for (let i = 0; i < counts["inventory"]; i++) {
+    for (let i = 0; i < 7; i++) {
         result.push(await global.player.open("inventory", i)) 
     }
 
@@ -66,38 +67,23 @@ export async function withdraw(items: any, station: number) {
 
 }
 
-// {
-//     from: {
-//         chest_type: "inventory", 
-//         chest: 4,
-//         slot: 2,
-//     }
-//     to: {
-//         chest_type: "station", 
-//         chest: 2,
-//         slot: 1,   
-//     }
-//     count: 4 
-// }
 
 export async function move(requests: any) {
-
-    console.log(requests)
 
     const chunkSize = 36 // inventory
 
     for (let a = 0; a < requests.length; a += chunkSize) {
         const chunk = requests.slice(a, a + chunkSize);
 
-        let prev_chest = null;
+        let prev_chest = [null, null];
 
         let c, i: any
 
         for([i, c] of chunk.entries()) {
 
-            if ( prev_chest !== c.from.chest ) {
+            if ( !((prev_chest[0] === c.from.chest_type) && (prev_chest[1] === c.from.chest)) ) {
                 await global.player.open(c.from.chest_type, c.from.chest)
-                prev_chest = c.from.chest
+                prev_chest = [c.from.chest_type, c.from.chest]
             }
 
             await global.player.lclick(c.from.slot)
@@ -111,9 +97,9 @@ export async function move(requests: any) {
 
         for([i, c] of chunk.entries()) {
 
-            if ( prev_chest !== c.to.chest ) {
+            if ( !((prev_chest[0] === c.to.chest_type) && (prev_chest[1] === c.to.chest)) ) {
                 await global.player.open(c.to.chest_type, c.to.chest)
-                prev_chest = c.to.chest
+                prev_chest = [c.to.chest_type, c.to.chest]
             }
 
             await global.player.lclick(i + 54)

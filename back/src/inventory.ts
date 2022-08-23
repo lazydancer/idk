@@ -1,12 +1,13 @@
-import { getItems, insert, remove} from './db'
+import { getItems, insert, remove, apply_moves} from './db'
 import * as actions from './actions'
 import { Pool } from 'pg';
 
 
 export async function inventory() {
-    let items = await actions.take_inventory()
+    const actual = await actions.take_inventory()
+    const expected = await getItems();
 
-    insert(items);
+    insert(actual);
 
 }
 
@@ -24,11 +25,15 @@ export async function withdraw(items: any, station: number) {
 export async function deposit(station: number) {
     let items = await actions.get_chest_contents(station)
 
-    const inventory = await getItems();
+    const inventory = await getItems()
 
     const moves = find_spaces(items, inventory, station)
 
-    await actions.move(moves);
+    console.log(moves)
+
+    await actions.move(moves)
+
+    await apply_moves(moves)
 
 }
 
@@ -70,39 +75,41 @@ function find(items: any, inventory: any) {
 function find_spaces(items: any, inventory: any, station: any) {
     let result = [];
 
+    let open_slots_list = open_slots(inventory)
+
+
     let item, i: any
     for ([i, item] of items.entries()) {
 
-        let open_slot: any = next_open_slot(inventory)
-
         result.push({
+            "item": item,
             "from": { "chest_type": "station", "chest": station, "slot": item.slot, },
-            "to": { "chest_type": "inventory", "chest": open_slot[1], "slot": open_slot[2], },
+            "to": { "chest_type": "inventory", "chest": open_slots_list[i].chest, "slot": open_slots_list[i].slot, },
             "count": item.count
-        })
-
-
-        inventory.push({
-            'name': 'hold',
-            'chest': open_slot[1],
-            'slot': open_slot[2],
-        })
-        
+        })        
     }
 
     return result
 
 }
 
-function next_open_slot(inventory: any) {
-    let counts = global.player.get_counts()
+function open_slots(inventory: any) {
+    const counts = global.player.get_counts()
+
+    let result: any = []
+
     for(let i=0; i<counts["inventory"]; i++) {
         for(let j=0; j<54; j++) {
-            if(!inventory.some((e: any) => (e.chest == i) && (e.slot == j))){
-                return ["inventory", i, j]
+            if(!inventory.some((e: any) => (e.chest === i) && (e.slot === j))){
+                result.push({
+                    "chest": i,
+                    "slot": j,
+                })
             }
         }
     }
+
+    return result;
 }
 
 function matches(item: any, other: any): boolean {
