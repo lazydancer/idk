@@ -81,6 +81,9 @@ export async function withdraw(items: any, station: number) {
 // }
 
 export async function move(requests: any) {
+
+    console.log(requests)
+
     const chunkSize = 36 // inventory
 
     for (let a = 0; a < requests.length; a += chunkSize) {
@@ -92,9 +95,8 @@ export async function move(requests: any) {
 
         for([i, c] of chunk.entries()) {
 
-            let chest: any;
-            if ((prev_chest === null) || (prev_chest !== c.from.chest)) {
-                chest = await global.player.open(c.from.chest_type, c.from.chest)
+            if ( prev_chest !== c.from.chest ) {
+                await global.player.open(c.from.chest_type, c.from.chest)
                 prev_chest = c.from.chest
             }
 
@@ -107,11 +109,10 @@ export async function move(requests: any) {
             
         }
 
-        for([i, c] of chunk.entires()) {
+        for([i, c] of chunk.entries()) {
 
-            let chest: any;
-            if ((prev_chest === null) || (prev_chest !== c.to.chest)) {
-                chest = await global.player.open(c.to.chest_type, c.to.chest)
+            if ( prev_chest !== c.to.chest ) {
+                await global.player.open(c.to.chest_type, c.to.chest)
                 prev_chest = c.to.chest
             }
 

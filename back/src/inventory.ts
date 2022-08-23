@@ -26,9 +26,9 @@ export async function deposit(station: number) {
 
     const inventory = await getItems();
 
-    const items_w_moves = find_spaces(items, inventory)
+    const moves = find_spaces(items, inventory, station)
 
-    // await actions.deposit(items_w_moves);
+    await actions.move(moves);
 
 }
 
@@ -67,45 +67,27 @@ function find(items: any, inventory: any) {
 
 }
 
-function find_spaces(items: any, inventory: any) {
+function find_spaces(items: any, inventory: any, station: any) {
     let result = [];
 
     let item, i: any
     for ([i, item] of items.entries()) {
-        let inv_item: any
-        for (inv_item of inventory) {
-            
-            if ( !matches(item, inv_item) ){
-                continue;
-            }
-            if (inv_item.count == inv_item.stack_size){
-                continue;
-            }
 
-            let space_in_stack = inv_item.stack_size - inv_item.count
-            
-            if (space_in_stack >= item.count) {
-                item['to'] = ["inventory", inv_item.chest, inv_item.slot]
-                
-                inv_item.count += (item.count - space_in_stack)
+        let open_slot: any = next_open_slot(inventory)
 
-                result.push(item)
-                break;
-            }
+        result.push({
+            "from": { "chest_type": "station", "chest": station, "slot": item.slot, },
+            "to": { "chest_type": "inventory", "chest": open_slot[1], "slot": open_slot[2], },
+            "count": item.count
+        })
 
-        }
 
-        if(! ("to" in item)) {
-            item['to'] = next_open_slot(inventory)
-
-            inventory.push({
-                'name': 'hold',
-                'chest': item['to'][1],
-                'slot': item['to'][2],
-            })
-
-            result.push(item)
-        }        
+        inventory.push({
+            'name': 'hold',
+            'chest': open_slot[1],
+            'slot': open_slot[2],
+        })
+        
     }
 
     return result
