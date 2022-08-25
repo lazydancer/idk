@@ -1,31 +1,35 @@
-import { getItems, insert, remove, apply_moves} from './db'
+import { get_items, insert, apply_moves} from './db'
 import * as actions from './actions'
 import { Pool } from 'pg';
 
 
 export async function inventory() {
     const actual = await actions.take_inventory()
-    const expected = await getItems();
+    const expected = await get_items();
 
     insert(actual);
 
 }
 
 export async function withdraw(items: any, station: number) {
-    const inventory = await getItems();
+    const inventory = await get_items();
 
-    let to_withdraw = find(items, inventory)
+    let moves = find(items, inventory, 1)
 
-    await actions.withdraw(to_withdraw, 1);
+    console.log("to_withdraw")
 
-    await remove(to_withdraw)
+    await actions.move(moves)
 
+    await apply_moves(moves)
 }
 
 export async function deposit(station: number) {
     let items = await actions.get_chest_contents(station)
 
-    const inventory = await getItems()
+    const inventory = await get_items()
+
+    // Shulker contents
+    // item.nbt.value.BlockEntityTag.value.Items.value.value
 
     const moves = find_spaces(items, inventory, station)
 
@@ -39,12 +43,10 @@ export async function deposit(station: number) {
 
 
 
-function find(items: any, inventory: any) {
+function find(items: any, inventory: any, station: number) {
     let result = [];
     
-    inventory.forEach((i: any) => {
-        i['available'] = i['count']
-    })
+    let open_slot = 0
 
     let item: any
     for (item of items) {
@@ -57,11 +59,22 @@ function find(items: any, inventory: any) {
             }
 
             if ( count > inv_item.count ) {
+                result.push({
+                    "item": inv_item,
+                    "from": { "chest_type": "inventory", "chest": inv_item.chest, "slot": inv_item.slot, },
+                    "to": { "chest_type": "station", "chest": station, "slot": open_slot, },
+                    "count": inv_item.count,
+                })
+                open_slot += 1
                 count -= inv_item.count
-                result.push(inv_item)
+                    
             } else {
-                inv_item.count = count
-                result.push(inv_item)
+                result.push({
+                    "item": inv_item,
+                    "from": { "chest_type": "inventory", "chest": inv_item.chest, "slot": inv_item.slot, },
+                    "to": { "chest_type": "station", "chest": station, "slot": open_slot, },
+                    "count": count,
+                })
                 break;
             }
         }
@@ -115,5 +128,5 @@ function open_slots(inventory: any) {
 function matches(item: any, other: any): boolean {
     return (item.name === other.name)  
     && (item.metadata === other.metadata)
-    && (item.nbt === other.nbt)
+    && (JSON.stringify(item.nbt) === JSON.stringify(other.nbt))
 }

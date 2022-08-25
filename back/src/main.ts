@@ -1,6 +1,6 @@
 import { Request, Response } from "express"
 
-import { getSummary } from './db'
+import { get_summary } from './db'
 import { Player } from './player'
 
 import * as inventory from './inventory'
@@ -21,7 +21,7 @@ async function main() {
   app.use(express.json())
 
   app.get('/api/list', async function (req: Request, res: Response) {
-    const items = await getSummary()
+    const items = await get_summary()
     res.send(items)
   })
 

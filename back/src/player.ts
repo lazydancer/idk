@@ -4,14 +4,27 @@ const vec3 = require('vec3')
 require('dotenv').config()
 
 
-const BUILDING = {
+let BUILD = {
 	location: [15, 83, 130],
 	width: 3,
 	depth: 7,
+	map: [[0,0]],
 	// height: 6,
 	// facing: [0,0,1],
 	// right: [1,0,0], // this could be worked out by math, but I'm lazy
 }
+
+const walkway = [...Array(3*BUILD['width']).keys()].map(x => 
+	[BUILD['location'][0] + 3 +x, 
+	 BUILD['location'][2] - 2]
+)
+const rows = [...Array(BUILD['width']).keys()].map(w => 
+	 [...Array(BUILD['depth']).keys()].map(d => 
+		[BUILD['location'][0] + (3+3*w), 
+		 BUILD['location'][2] - (d+3)]
+	)
+).flat()
+BUILD["map"] = walkway.concat(rows).sort()
 
 export class Player {
     bot: any
@@ -39,6 +52,20 @@ export class Player {
 		this.opened_chest = await this.bot.openChest(this.bot.blockAt(location))
 
 		return this.log();
+	}
+
+	async open_shulker_from_hand() {
+		if ( this.opened_chest != null ) {
+			await this.bot.closeWindow(this.opened_chest)
+			this.opened_chest = null
+		}
+
+		// get neighbouring space to place shulker
+
+		// place shulker
+
+		// open
+		
 	}
 
 	async lclick(slot: any) {
@@ -110,7 +137,7 @@ export class Player {
 
 		const move_line = async (x :any, z :any) =>  {
 			console.log('move line', x, z)
-			let position = vec3(x + 0.5, BUILDING['location'][1], z + 0.5)
+			let position = vec3(x + 0.5, BUILD['location'][1], z + 0.5)
 
 			await this.bot.lookAt(position);
 			// await this.bot.waitForTicks(10);
@@ -134,15 +161,15 @@ export class Player {
 
 		}
 
-		const walkway = [...Array(3*BUILDING['width']).keys()].map(x => 
-			[BUILDING['location'][0] + 3 +x, 
-			 BUILDING['location'][2] - 2]
+		const walkway = [...Array(3*BUILD['width']).keys()].map(x => 
+			[BUILD['location'][0] + 3 +x, 
+			 BUILD['location'][2] - 2]
 		)
 
-		const rows = [...Array(BUILDING['width']).keys()].map(w => 
-		 	[...Array(BUILDING['depth']).keys()].map(d => 
-				[BUILDING['location'][0] + (3+3*w), 
-				 BUILDING['location'][2] - (d+3)]
+		const rows = [...Array(BUILD['width']).keys()].map(w => 
+		 	[...Array(BUILD['depth']).keys()].map(d => 
+				[BUILD['location'][0] + (3+3*w), 
+				 BUILD['location'][2] - (d+3)]
 			)
 		).flat()
 
@@ -159,19 +186,19 @@ export class Player {
 			return "done"
 		}
 
-		if (!includesArray(map, player_position)) {
+		if (!includesArray(BUILD["map"], player_position)) {
 
-			console.log(map, player_position)
+			console.log(BUILD["map"], player_position)
 			throw Error("player not on map")
 		}
 
-		if (!includesArray(map, [x,z])) {
+		if (!includesArray(BUILD["map"], [x,z])) {
 
-			console.log(map, [x, z])
+			console.log(BUILD["map"], [x, z])
 			throw Error("destination not on map")
 		}
 
-		let path = pathfind(player_position, [x, z], map)
+		let path = pathfind(player_position, [x, z], BUILD["map"])
 		let s_path = straighten_path(path)
 		s_path.shift() // remove first
 
@@ -201,7 +228,7 @@ export class Player {
 	get_counts() {
 
 		return {
-			'inventory': BUILDING['width'] * BUILDING['depth'] * 6,
+			'inventory': BUILD['width'] * BUILD['depth'] * 6,
 			'station': 3,
 		}
 
@@ -211,18 +238,18 @@ export class Player {
 
 		if(chest_type == 'inventory') {
 
-			const offset = [BUILDING['location'][0] + 2, BUILDING['location'][1], BUILDING['location'][2] - 3]
+			const offset = [BUILD['location'][0] + 2, BUILD['location'][1], BUILD['location'][2] - 3]
 
-			const x = Math.floor(chest_number / (6*BUILDING['depth'])) * 3
+			const x = Math.floor(chest_number / (6*BUILD['depth'])) * 3
 			const y = chest_number % 6
-			const z = -1*(Math.floor(chest_number / 6 ) % BUILDING['depth'])
+			const z = -1*(Math.floor(chest_number / 6 ) % BUILD['depth'])
 
 			return vec3(x + offset[0], y + offset[1], z + offset[2])
 
 		}
 
 		if (chest_type == 'station') {
-			return vec3(BUILDING['location'][0] + 5 + 2*chest_number, BUILDING['location'][1], BUILDING['location'][2] - 1)
+			return vec3(BUILD['location'][0] + 5 + 2*chest_number, BUILD['location'][1], BUILD['location'][2] - 1)
 		}
 
 	}
@@ -230,16 +257,16 @@ export class Player {
 	private standing_location(chest_type: string, chest_number: number): any {
 
 		if(chest_type == 'inventory') {
-			const offset = [BUILDING['location'][0] + 2, BUILDING['location'][1], BUILDING['location'][2] - 3]
+			const offset = [BUILD['location'][0] + 2, BUILD['location'][1], BUILD['location'][2] - 3]
 
-			const x = Math.floor(chest_number / (6*BUILDING['depth'])) * 3
-			const z = -1*(Math.floor(chest_number / 6 ) % BUILDING['depth'])
+			const x = Math.floor(chest_number / (6*BUILD['depth'])) * 3
+			const z = -1*(Math.floor(chest_number / 6 ) % BUILD['depth'])
 
 			return [x + offset[0] + 1, z + offset[2]]
 		}
 
 		if (chest_type == 'station') {
-			return [BUILDING['location'][0] + 5 + 2*chest_number, BUILDING['location'][2] - 2]
+			return [BUILD['location'][0] + 5 + 2*chest_number, BUILD['location'][2] - 2]
 		}
 	}
 

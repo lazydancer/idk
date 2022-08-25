@@ -8,7 +8,7 @@ const pool = new Pool({
 })
 
 
-export async function getItems(): Promise<any> {
+export async function get_items(): Promise<any> {
     try {
         const a = await pool.query("SELECT * FROM items")
         return a["rows"]
@@ -18,7 +18,7 @@ export async function getItems(): Promise<any> {
 } 
 
 // Group items for total counts
-export async function getSummary(): Promise<any> {
+export async function get_summary(): Promise<any> {
     try {
         const a = await pool.query("SELECT metadata, nbt, name, MAX(display_name) as display_name, SUM(count) as count FROM items GROUP BY metadata, nbt, name")
         return a["rows"]
@@ -35,19 +35,6 @@ export async function insert(items: any): Promise<any> {
     }
 
 }
-
-export async function remove(items: any): Promise<any> {
-
-    for (const item of items) {
-        await pool.query("UPDATE items SET count = count - $1 WHERE slot=$2 and chest=$3",
-        [item.count, item.slot, item.chest])
-    }
-
-    await pool.query("DELETE FROM items WHERE count = 0")
-
-
-}
-
 
 export async function apply_moves(moves: any): Promise<any> {
 
