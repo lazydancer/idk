@@ -1,6 +1,7 @@
 import { get_items, insert, apply_moves} from './db'
 import * as actions from './actions'
 import { Pool } from 'pg';
+import test from 'node:test';
 
 
 export async function inventory() {
@@ -129,4 +130,8 @@ function matches(item: any, other: any): boolean {
     return (item.name === other.name)  
     && (item.metadata === other.metadata)
     && (JSON.stringify(item.nbt) === JSON.stringify(other.nbt))
+}
+
+export async function testin() {
+    await player.open_shulker_from_hand();
 }
