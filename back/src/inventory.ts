@@ -28,7 +28,7 @@ export async function deposit(station: number) {
     let items = await actions.get_chest_contents(station)
 
     const inventory = await get_items()
-
+    
     // Shulker contents
     // item.nbt.value.BlockEntityTag.value.Items.value.value
 
@@ -133,5 +133,7 @@ function matches(item: any, other: any): boolean {
 }
 
 export async function testin() {
-    await player.open_shulker_from_hand();
+    await global.player.open("station", 2)
+    let result = await global.player.log_shulker(0);
+    console.log(result)
 }

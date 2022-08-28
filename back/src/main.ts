@@ -36,10 +36,8 @@ async function main() {
   })
 
   // Take Inventory
-  for (let i=0; i<10; i++) {
-    await new Promise(r => setTimeout(r, 5000));
-    await inventory.testin()
-  }
+  await new Promise(r => setTimeout(r, 5000));
+  await inventory.testin()
 
   app.listen(8000)
 

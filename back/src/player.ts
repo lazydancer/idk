@@ -29,6 +29,9 @@ BUILD["map"] = walkway.concat(rows).sort()
 export class Player {
     bot: any
     opened_chest: any
+    opened_chest_type: any
+    opened_chest_number: any
+
 	constructor() {
 		this.bot = mineflayer.createBot({
 				host: "localhost",
@@ -42,7 +45,6 @@ export class Player {
 	async open(chest_type: string, chest_number: number)  {
 		if ( this.opened_chest != null ) {
 			await this.bot.closeWindow(this.opened_chest)
-			this.opened_chest = null
 		}
 
 		await this.move(this.standing_location(chest_type, chest_number))
@@ -50,15 +52,28 @@ export class Player {
 		const location = this.chest_to_location(chest_type, chest_number)
 
 		this.opened_chest = await this.bot.openChest(this.bot.blockAt(location))
+		this.opened_chest_type = chest_type
+		this.opened_chest_number = chest_number
 
 		return this.log();
 	}
 
-	async open_shulker_from_hand() {
-		if ( this.opened_chest != null ) {
-			await this.bot.closeWindow(this.opened_chest)
-			this.opened_chest = null
-		}
+	async log_shulker(slot: any) {
+		// Asuumes the chest with the shulker is open
+
+		console.log(slot)
+
+		await new Promise(r => setTimeout(r, 1000));
+		console.log(this.opened_chest.slots)
+
+		const hand_slot = 81
+		await this.lclick(slot)
+		await new Promise(r => setTimeout(r, 1000));
+		await this.lclick(hand_slot)
+		await new Promise(r => setTimeout(r, 1000));
+
+
+		await this.bot.closeWindow(this.opened_chest)
 
 		// get neighbouring space to place shulker
 		let player_position = [Math.floor(this.bot.entity.position.x), Math.floor(this.bot.entity.position.z)]
@@ -74,30 +89,52 @@ export class Player {
 			}
  		}
 
-		console.log(open_place)
-
 		if(open_place.length == 0) {
-			console.log("could find a place")
+			console.log("couldn't find a place")
 			throw console.error();
-			
 		}
 
-
+		await new Promise(r => setTimeout(r, 1000));
+		
 		// place shulker
 		await this.bot.placeBlock(this.bot.blockAt(vec3(open_place[0], BUILD["location"][1]-1, open_place[1])), vec3(0,1,0))
 
+		await new Promise(r => setTimeout(r, 1000));
+
+
 		// open
 		let b = await this.bot.blockAt(vec3(open_place[0], BUILD["location"][1], open_place[1]))
-		console.log(b)
 		let shulker = await this.bot.openContainer(b)
 
-		await new Promise(r => setTimeout(r, 3000));
+		let slots = shulker.containerItems()	
 
+		slots.forEach((o:any) => {
+			o["display_name"] = o["displayName"];
+			o["stack_size"] = o["stackSize"];
+		})
+
+
+		await new Promise(r => setTimeout(r, 1000));
+		
+		// Close shulker and pick up
 		await this.bot.closeWindow(shulker)
-
 		await this.bot.dig(b)
-
 		await this.move(open_place)
+
+		await new Promise(r => setTimeout(r, 1000));
+
+
+		// Return shulker to chest
+		await this.open(this.opened_chest_type, this.opened_chest_number)
+		await new Promise(r => setTimeout(r, 1000));
+
+		await this.lclick(hand_slot)
+		await new Promise(r => setTimeout(r, 1000));
+
+		await this.lclick(slot)
+		await new Promise(r => setTimeout(r, 1000));
+
+		return slots
 
 	}
 

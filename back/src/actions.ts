@@ -5,7 +5,8 @@ export async function take_inventory() {
     let counts = global.player.get_counts()
     // for (let i = 0; i < counts["inventory"]; i++) {
     for (let i = 0; i < 7; i++) {
-        result.push(await global.player.open("inventory", i)) 
+        let inv = await global.player.open("inventory", i)
+        result.push(inv) 
     }
 
     let r: any
