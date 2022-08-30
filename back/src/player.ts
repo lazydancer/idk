@@ -58,93 +58,21 @@ export class Player {
 		return this.log();
 	}
 
-	async log_shulker(slot: any) {
-		// Asuumes the chest with the shulker is open
-
-		console.log(slot)
-
-		await new Promise(r => setTimeout(r, 1000));
-		console.log(this.opened_chest.slots)
-
-		const hand_slot = 81
-		await this.lclick(slot)
-		await new Promise(r => setTimeout(r, 1000));
-		await this.lclick(hand_slot)
-		await new Promise(r => setTimeout(r, 1000));
-
-
-		await this.bot.closeWindow(this.opened_chest)
-
-		// get neighbouring space to place shulker
-		let player_position = [Math.floor(this.bot.entity.position.x), Math.floor(this.bot.entity.position.z)]
-
-		let open_place: any[] = [];
-		for(const loc of [[1,0], [-1,0], [0,1], [0,-1]]) {
-			let place = [player_position[0] + loc[0], player_position[1] + loc[1]]
-			for (const m of BUILD["map"]) {
-				if(m[0] == place[0] && m[1] == place[1]) {
-					open_place = place 
-					break;
-				}
-			}
- 		}
-
-		if(open_place.length == 0) {
-			console.log("couldn't find a place")
-			throw console.error();
-		}
-
-		await new Promise(r => setTimeout(r, 1000));
-		
-		// place shulker
-		await this.bot.placeBlock(this.bot.blockAt(vec3(open_place[0], BUILD["location"][1]-1, open_place[1])), vec3(0,1,0))
-
-		await new Promise(r => setTimeout(r, 1000));
-
-
-		// open
-		let b = await this.bot.blockAt(vec3(open_place[0], BUILD["location"][1], open_place[1]))
-		let shulker = await this.bot.openContainer(b)
-
-		let slots = shulker.containerItems()	
-
-		slots.forEach((o:any) => {
-			o["display_name"] = o["displayName"];
-			o["stack_size"] = o["stackSize"];
-		})
-
-
-		await new Promise(r => setTimeout(r, 1000));
-		
-		// Close shulker and pick up
-		await this.bot.closeWindow(shulker)
-		await this.bot.dig(b)
-		await this.move(open_place)
-
-		await new Promise(r => setTimeout(r, 1000));
-
-
-		// Return shulker to chest
-		await this.open(this.opened_chest_type, this.opened_chest_number)
-		await new Promise(r => setTimeout(r, 1000));
-
-		await this.lclick(hand_slot)
-		await new Promise(r => setTimeout(r, 1000));
-
-		await this.lclick(slot)
-		await new Promise(r => setTimeout(r, 1000));
-
-		return slots
-
-	}
-
 	async lclick(slot: any) {
 		await this.bot.simpleClick.leftMouse(slot)
+
+		// Does not wait for confirmation
+		await new Promise(r => setTimeout(r, 50));
+
 		return "done";
 	}
 
 	async rclick(slot: any) {
 		await this.bot.simpleClick.rightMouse(slot)
+
+		// Does not wait for confirmation
+		await new Promise(r => setTimeout(r, 50));
+
 		return "done";
 	}
 

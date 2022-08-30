@@ -1,7 +1,5 @@
 import { get_items, insert, apply_moves} from './db'
 import * as actions from './actions'
-import { Pool } from 'pg';
-import test from 'node:test';
 
 
 export async function inventory() {
@@ -29,9 +27,6 @@ export async function deposit(station: number) {
 
     const inventory = await get_items()
     
-    // Shulker contents
-    // item.nbt.value.BlockEntityTag.value.Items.value.value
-
     const moves = find_spaces(items, inventory, station)
 
     console.log(moves)
@@ -66,9 +61,7 @@ function find(items: any, inventory: any, station: number) {
                     "to": { "chest_type": "station", "chest": station, "slot": open_slot, },
                     "count": inv_item.count,
                 })
-                open_slot += 1
                 count -= inv_item.count
-                    
             } else {
                 result.push({
                     "item": inv_item,
@@ -76,8 +69,15 @@ function find(items: any, inventory: any, station: number) {
                     "to": { "chest_type": "station", "chest": station, "slot": open_slot, },
                     "count": count,
                 })
+                count = 0
+            }
+
+            open_slot += 1
+
+            if (count === 0) {
                 break;
             }
+
         }
 
     }
@@ -134,6 +134,4 @@ function matches(item: any, other: any): boolean {
 
 export async function testin() {
     await global.player.open("station", 2)
-    let result = await global.player.log_shulker(0);
-    console.log(result)
 }

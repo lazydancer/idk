@@ -21,6 +21,8 @@ export async function take_inventory() {
 
 export async function move(requests: any) {
 
+    console.log("move", requests)
+
     const chunkSize = 36 // inventory
 
     for (let a = 0; a < requests.length; a += chunkSize) {
