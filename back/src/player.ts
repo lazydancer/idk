@@ -28,32 +28,31 @@ BUILD["map"] = walkway.concat(rows).sort()
 
 export class Player {
     bot: any
-    opened_chest: any
-    opened_chest_type: any
-    opened_chest_number: any
+    open_container: any
+	shulker_location: any // When opening a shulker need to store location of where to place it back when closing it
 
 	constructor() {
 		this.bot = mineflayer.createBot({
 				host: "localhost",
+				// port: 25566,
 				username: process.env['MC_EMAIL'],
 				password: process.env['MC_PASS'],
 				auth: 'microsoft' 
 			})
-		this.opened_chest = null
+		this.open_container = null
+		this.shulker_location = null
 	}
 
 	async open(chest_type: string, chest_number: number)  {
-		if ( this.opened_chest != null ) {
-			await this.bot.closeWindow(this.opened_chest)
+		if ( this.open_container != null ) {
+			await this.bot.closeWindow(this.open_container)
 		}
 
 		await this.move(this.standing_location(chest_type, chest_number))
 
 		const location = this.chest_to_location(chest_type, chest_number)
 
-		this.opened_chest = await this.bot.openChest(this.bot.blockAt(location))
-		this.opened_chest_type = chest_type
-		this.opened_chest_number = chest_number
+		this.open_container = await this.bot.openChest(this.bot.blockAt(location))
 
 		return this.log();
 	}
@@ -76,10 +75,108 @@ export class Player {
 		return "done";
 	}
 
-	// async close()  {
-	// 	this.bot.closeWindow(this.opened_chest)
-	// 	return "done";
-	// }
+	async close()  {
+		await this.bot.closeWindow(this.open_container)
+		this.open_container = null
+		return "done";
+	}
+
+
+
+	async open_shulker(chest: any, chest_type: any, slot: any): Promise<any> {
+		console.log(chest, chest_type, slot)
+		const hand_slot = 81
+
+
+		await this.open(chest_type, chest)
+
+		await this.lclick(slot)
+		await this.lclick(hand_slot)
+
+
+		await this.close()
+
+		// get neighbouring space to place shulker
+		let player_position = [Math.floor(this.bot.entity.position.x), Math.floor(this.bot.entity.position.z)]
+
+		let open_place: any[] = [];
+		for(const loc of [[1,0], [-1,0], [0,1], [0,-1]]) {
+			let place = [player_position[0] + loc[0], player_position[1] + loc[1]]
+			for (const m of BUILD["map"]) {
+				if(m[0] == place[0] && m[1] == place[1]) {
+					open_place = place 
+					break;
+				}
+			}
+			}
+
+		if(open_place.length == 0) {
+			console.log("couldn't find a place")
+			throw console.error();
+		}
+
+		await new Promise(r => setTimeout(r, 100));
+		
+		// place shulker
+		await this.bot.placeBlock(this.bot.blockAt(vec3(open_place[0], BUILD["location"][1]-1, open_place[1])), vec3(0,1,0))
+
+		await new Promise(r => setTimeout(r, 100));
+
+
+		// open
+		let b = await this.bot.blockAt(vec3(open_place[0], BUILD["location"][1], open_place[1]))
+		let shulker = await this.bot.openContainer(b)
+
+		let slots = shulker.containerItems()	
+
+		slots.forEach((o:any) => {
+			o["display_name"] = o["displayName"];
+			o["stack_size"] = o["stackSize"];
+		})
+
+		this.shulker_location = [chest, chest_type, slot, b]		
+
+
+		return slots
+		
+	}
+
+	async close_shulker() {
+		const hand_slot = 81
+
+		let {chest, chest_type, slot, b} = this.shulker_location 
+
+		// Close shulker and pick up
+		await this.bot.closeWindow(b)
+		await this.bot.dig(b)
+		await this.move([b.location[0], b.location[2]])
+
+		await new Promise(r => setTimeout(r, 1000));
+
+
+		// Return shulker to chest
+		await this.open(chest_type, chest)
+		await new Promise(r => setTimeout(r, 1000));
+
+		await this.lclick(hand_slot)
+		await new Promise(r => setTimeout(r, 1000));
+
+		await this.lclick(slot)
+		await new Promise(r => setTimeout(r, 1000));
+
+
+		this.shulker_location = null
+
+
+	}
+
+
+
+
+
+
+
+
 
 	private async move(loc: any) {
 		let x = loc[0]
@@ -192,7 +289,7 @@ export class Player {
 	}
 
 	private log() {
-		let slots = this.opened_chest.containerItems()	
+		let slots = this.open_container.containerItems()	
 
 		slots.forEach((o:any) => {
 			o["display_name"] = o["displayName"];
@@ -250,6 +347,8 @@ export class Player {
 			return [BUILD['location'][0] + 5 + 2*chest_number, BUILD['location'][2] - 2]
 		}
 	}
+
+
 
 
 }

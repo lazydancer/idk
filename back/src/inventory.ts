@@ -133,5 +133,6 @@ function matches(item: any, other: any): boolean {
 }
 
 export async function testin() {
-    await global.player.open("station", 2)
+    // await global.player.open("station", 2)
+    await global.player.open_shulker("station", 2, 0)
 }

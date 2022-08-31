@@ -35,9 +35,9 @@ async function main() {
     inventory.deposit(req.body['station'])
   })
 
-  // // Take Inventory
-  // await new Promise(r => setTimeout(r, 5000));
-  // await inventory.testin()
+  // Take Inventory
+  await new Promise(r => setTimeout(r, 5000));
+  await inventory.testin()
 
   app.listen(8000)
 
