@@ -24,7 +24,22 @@ export async function deposit(station: number) {
     let items = await actions.get_chest_contents(station)
 
     const inventory = await get_items()
+
+    let shulkers = []
+    for (const box of items.filter( (x: any) => x.name.endsWith("shulker_box"))) {
+
+        let shulker_contents = await global.player.open_shulker("station", station, box.slot)
+        await global.player.close_shulker()
+
+        shulker_contents.forEach((x: any) => {
+            x["slot"] = box.slot;
+            x["chest"] = box.chest;
+        })
+
+        shulkers.push(shulker_contents)
+    }
     
+    items = items.concat(shulkers.flat())
     const moves = find_spaces(items, inventory, station)
 
     console.log(moves)
@@ -90,15 +105,24 @@ function find_spaces(items: any, inventory: any, station: any) {
     let open_slots_list = open_slots(inventory)
 
 
-    let item, i: any
-    for ([i, item] of items.entries()) {
+    let item: any, i: any
+    for ([i, item] of items.filter((x: any) => x.shulker_slot == null).entries()) {
 
         result.push({
             "item": item,
-            "from": { "chest_type": "station", "chest": station, "slot": item.slot, },
-            "to": { "chest_type": "inventory", "chest": open_slots_list[i].chest, "slot": open_slots_list[i].slot, },
+            "from": { "chest_type": "station", "chest": station, "slot": item.slot, "shulker_slot": null},
+            "to": { "chest_type": "inventory", "chest": open_slots_list[i].chest, "slot": open_slots_list[i].slot, "shulker_slot": null},
             "count": item.count
-        })        
+        })
+        
+        items.filter((x: any) => (x.shulker_slot != null) && (x.slot == item.slot)).forEach((y: any) => {
+            result.push({
+                "item": y,
+                "from": { "chest_type": "station", "chest": station, "slot": item.slot, "shulker_slot": y.shulker_slot},
+                "to": { "chest_type": "inventory", "chest": open_slots_list[i].chest, "slot": open_slots_list[i].slot, "shulker_slot": y.shulker_slot},
+                "count": y.count
+            })
+        })
     }
 
     return result

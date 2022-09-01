@@ -30,9 +30,12 @@ export async function take_inventory() {
 
 export async function move_items(requests: any) {
 
+    // temporarly not include shulkers
+    requests = structuredClone(requests).filter((x: any) => x.from.shulker_slot == null) 
+
     console.log("move", requests)
 
-    const chunkSize = 36 // inventory
+    const chunkSize = 27 // inventory (except hotbar)
 
     for (let a = 0; a < requests.length; a += chunkSize) {
         const chunk = requests.slice(a, a + chunkSize);
