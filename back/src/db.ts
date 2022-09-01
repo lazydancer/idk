@@ -51,7 +51,7 @@ export async function apply_moves(moves: any): Promise<any> {
             let exists = await pool.query("SELECT * FROM items WHERE slot=$1 and chest=$2 and shulker_slot=$3",  [move.to.slot, move.to.chest, move.to.shulker_slot]) 
             
             if (exists.rowCount > 0) {
-                await pool.query("UPDATE items SET count = count + $1 WHERE slot=$2 and chest=$3", [move.count, move.to.slot, move.to.chest])        
+                await pool.query("UPDATE items SET count = count + $1 WHERE slot=$2 and chest=$3 and shulker_slot=$4", [move.count, move.to.slot, move.to.chest, move.to.shulker_slot])        
             } else {
                 await pool.query("INSERT INTO items (metadata, name, display_name, stack_size, slot, count, nbt, chest, shulker_slot) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", [move.item.metadata, move.item.name, move.item.display_name, move.item.stack_size, move.to.slot, move.item.count, move.item.nbt, move.to.chest, move.to.shulker_slot])
 

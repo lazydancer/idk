@@ -156,7 +156,8 @@
         <AccordionItem key={item.key}>
             <div slot='header' class="flex flex-row py-1">
               <div class="mr-4" style="width: 37px; height: 37px; background: #8B8B8B; border: 2px solid; border-color: #373737 #FFF #FFF #373737">
-                <div style="width:32px; height:32px; background-image:url(static/items-sprite.webp); background-position: -{item.imageLoc[0]}px -{item.imageLoc[1]}px"></div>
+                  <img src="static/icons/{item.name}.png" style="width:32px; height:32px;" />
+                <!-- <div style="width:32px; height:32px; background-image:url(static/items-sprite.webp); background-position: -{item.imageLoc[0]}px -{item.imageLoc[1]}px"></div> -->
               </div>
               <h2 class="flex-1 w-72 pt-1">{ item.display_name }</h2>
               <p class="flex-1 text-sm pt-1.5 pr-2">{item.count}</p>

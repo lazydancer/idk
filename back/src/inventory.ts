@@ -13,9 +13,7 @@ export async function inventory() {
 export async function withdraw(items: any, station: number) {
     const inventory = await get_items();
 
-    let moves = find(items, inventory, 1)
-
-    console.log("to_withdraw")
+    let moves = find(items, inventory, station)
 
     await actions.move_items(moves)
 

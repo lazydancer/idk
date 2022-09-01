@@ -4,30 +4,24 @@ export async function take_inventory() {
 
     let counts = global.player.get_counts()
     // for (let i = 0; i < counts["inventory"]; i++) {
-    for (let i = 0; i < 7; i++) {
-        let inv = await global.player.open("inventory", i)
+    for (let chest = 0; chest < 18; chest++) {
+        let inv = await global.player.open("inventory", chest)
 
-        inv = inv.map((x: any) => ({...x, shulker_slot: null}))
+        inv = inv.map((x: any) => ({...x, chest: chest, shulker_slot: null}))
         result.push(inv) 
 
         // Open each shulker to record internals
         for (const box of inv.filter( (x: any) => x.name.endsWith("shulker_box"))) {
-            let shulker_contents = await global.player.open_shulker("inventory", i, box.slot)
+            let shulker_contents = await global.player.open_shulker("inventory", chest, box.slot)
             await global.player.close_shulker()
 
             shulker_contents.forEach((x: any) => {
                 x["slot"] = box.slot;
-                x["chest"] = box.chest;
+                x["chest"] = chest;
             })
 
             result.push(shulker_contents)
         }
-    }
-
-    let r: any
-    let i: any
-    for ([i, r] of result.entries()) {
-        r = r.map((x:any) => x.chest = i)
     }
 
     return result.flat()
