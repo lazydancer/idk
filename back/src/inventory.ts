@@ -17,7 +17,7 @@ export async function withdraw(items: any, station: number) {
 
     console.log("to_withdraw")
 
-    await actions.move(moves)
+    await actions.move_items(moves)
 
     await apply_moves(moves)
 }
@@ -31,7 +31,7 @@ export async function deposit(station: number) {
 
     console.log(moves)
 
-    await actions.move(moves)
+    await actions.move_items(moves)
 
     await apply_moves(moves)
 
@@ -57,16 +57,16 @@ function find(items: any, inventory: any, station: number) {
             if ( count > inv_item.count ) {
                 result.push({
                     "item": inv_item,
-                    "from": { "chest_type": "inventory", "chest": inv_item.chest, "slot": inv_item.slot, },
-                    "to": { "chest_type": "station", "chest": station, "slot": open_slot, },
+                    "from": { "chest_type": "inventory", "chest": inv_item.chest, "slot": inv_item.slot, "shulker_slot": inv_item.shulker_slot },
+                    "to": { "chest_type": "station", "chest": station, "slot": open_slot, "shulker_slot": inv_item.shulker_slot},
                     "count": inv_item.count,
                 })
                 count -= inv_item.count
             } else {
                 result.push({
                     "item": inv_item,
-                    "from": { "chest_type": "inventory", "chest": inv_item.chest, "slot": inv_item.slot, },
-                    "to": { "chest_type": "station", "chest": station, "slot": open_slot, },
+                    "from": { "chest_type": "inventory", "chest": inv_item.chest, "slot": inv_item.slot, "shulker_slot": inv_item.shulker_slot},
+                    "to": { "chest_type": "station", "chest": station, "slot": open_slot, "shulker_slot": inv_item.shulker_slot},
                     "count": count,
                 })
                 count = 0

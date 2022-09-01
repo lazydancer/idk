@@ -34,7 +34,7 @@ export class Player {
 	constructor() {
 		this.bot = mineflayer.createBot({
 				host: "localhost",
-				// port: 25566,
+				port: 25566,
 				username: process.env['MC_EMAIL'],
 				password: process.env['MC_PASS'],
 				auth: 'microsoft' 
@@ -83,8 +83,13 @@ export class Player {
 
 
 
-	async open_shulker(chest: any, chest_type: any, slot: any): Promise<any> {
+	async open_shulker(chest_type: any, chest: any, slot: any): Promise<any> {
+		if ( this.open_container != null ) {
+			await this.bot.closeWindow(this.open_container)
+		}
+
 		console.log(chest, chest_type, slot)
+
 		const hand_slot = 81
 
 
@@ -115,8 +120,12 @@ export class Player {
 			throw console.error();
 		}
 
-		await new Promise(r => setTimeout(r, 100));
+		await new Promise(r => setTimeout(r, 1000));
 		
+		// Trigger held item change to update held item
+		await this.bot.setQuickBarSlot(1)
+		await this.bot.setQuickBarSlot(0)
+
 		// place shulker
 		await this.bot.placeBlock(this.bot.blockAt(vec3(open_place[0], BUILD["location"][1]-1, open_place[1])), vec3(0,1,0))
 
@@ -124,17 +133,21 @@ export class Player {
 
 
 		// open
-		let b = await this.bot.blockAt(vec3(open_place[0], BUILD["location"][1], open_place[1]))
-		let shulker = await this.bot.openContainer(b)
+		let block = await this.bot.blockAt(vec3(open_place[0], BUILD["location"][1], open_place[1]))
+		let window = await this.bot.openContainer(block)
 
-		let slots = shulker.containerItems()	
+		let slots = window.containerItems()	
 
 		slots.forEach((o:any) => {
 			o["display_name"] = o["displayName"];
 			o["stack_size"] = o["stackSize"];
+			o["shulker_slot"] = o["slot"];
 		})
 
-		this.shulker_location = [chest, chest_type, slot, b]		
+		slots = slots.map((o: any) => 
+			(({ display_name, count, metadata, name, nbt, slot, stack_size, shulker_slot}) => ({ display_name, count, metadata, name, nbt, slot, stack_size, shulker_slot}))(o))
+
+		this.shulker_location = [chest, chest_type, slot, window, block]		
 
 
 		return slots
@@ -144,12 +157,16 @@ export class Player {
 	async close_shulker() {
 		const hand_slot = 81
 
-		let {chest, chest_type, slot, b} = this.shulker_location 
+		let [chest, chest_type, slot, window, block] = this.shulker_location 
+
+		console.log(window)
 
 		// Close shulker and pick up
-		await this.bot.closeWindow(b)
-		await this.bot.dig(b)
-		await this.move([b.location[0], b.location[2]])
+		await this.bot.closeWindow(window)
+		await this.bot.dig(block)
+
+		console.log("here")
+		await this.move([block.position["x"], block.position["z"]])
 
 		await new Promise(r => setTimeout(r, 1000));
 
@@ -169,14 +186,6 @@ export class Player {
 
 
 	}
-
-
-
-
-
-
-
-
 
 	private async move(loc: any) {
 		let x = loc[0]
