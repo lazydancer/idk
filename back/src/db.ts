@@ -21,7 +21,7 @@ export async function get_items(): Promise<any> {
 export async function get_summary(): Promise<any> {
     try {
         const a = await pool.query("SELECT metadata, nbt, name, MAX(display_name) as display_name, SUM(count) as count FROM items GROUP BY metadata, nbt, name")
-        return a["rows"]
+        return a["rows"].filter( (x: any) => !x.name.endsWith("shulker_box"))   
     } catch(err) {
         console.log(err)
     }

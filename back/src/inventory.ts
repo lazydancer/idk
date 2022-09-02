@@ -71,7 +71,7 @@ function find(items: any, inventory: any, station: number) {
                 result.push({
                     "item": inv_item,
                     "from": { "chest_type": "inventory", "chest": inv_item.chest, "slot": inv_item.slot, "shulker_slot": inv_item.shulker_slot },
-                    "to": { "chest_type": "station", "chest": station, "slot": open_slot, "shulker_slot": inv_item.shulker_slot},
+                    "to": { "chest_type": "station", "chest": station, "slot": open_slot, "shulker_slot": null},
                     "count": inv_item.count,
                 })
                 count -= inv_item.count
@@ -79,7 +79,7 @@ function find(items: any, inventory: any, station: number) {
                 result.push({
                     "item": inv_item,
                     "from": { "chest_type": "inventory", "chest": inv_item.chest, "slot": inv_item.slot, "shulker_slot": inv_item.shulker_slot},
-                    "to": { "chest_type": "station", "chest": station, "slot": open_slot, "shulker_slot": inv_item.shulker_slot},
+                    "to": { "chest_type": "station", "chest": station, "slot": open_slot, "shulker_slot": null},
                     "count": count,
                 })
                 count = 0
