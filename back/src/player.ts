@@ -11,7 +11,6 @@ let BUILD = {
 	map: [[0,0]],
 	// height: 6,
 	// facing: [0,0,1],
-	// right: [1,0,0], // this could be worked out by math, but I'm lazy
 }
 
 const walkway = [...Array(3*BUILD['width']).keys()].map(x => 
@@ -88,8 +87,6 @@ export class Player {
 			await this.bot.closeWindow(this.open_container)
 		}
 
-		console.log(chest, chest_type, slot)
-
 		const hand_slot = 81
 
 
@@ -165,7 +162,6 @@ export class Player {
 		await this.bot.closeWindow(window)
 		await this.bot.dig(block)
 
-		console.log("here")
 		await this.move([block.position["x"], block.position["z"]])
 
 		await new Promise(r => setTimeout(r, 1000));
@@ -240,11 +236,9 @@ export class Player {
 		}
 
 		const move_line = async (x :any, z :any) =>  {
-			console.log('move line', x, z)
 			let position = vec3(x + 0.5, BUILD['location'][1], z + 0.5)
 
 			await this.bot.lookAt(position);
-			// await this.bot.waitForTicks(10);
 			this.bot.setControlState('forward', true);
 
 			return new Promise<void>(resolve => {

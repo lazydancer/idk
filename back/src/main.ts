@@ -9,10 +9,10 @@ const express = require('express')
 var cors = require('cors')
 const app = express()
 
+/// Player only used in actions but defined globally to ensure stays running
 declare global {
   var player: any;
 }
-
 global.player = new Player()
 
 async function main() {

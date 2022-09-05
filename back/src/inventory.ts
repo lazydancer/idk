@@ -28,8 +28,7 @@ export async function deposit(station: number) {
     let shulkers = []
     for (const box of items.filter( (x: any) => x.name.endsWith("shulker_box"))) {
 
-        let shulker_contents = await global.player.open_shulker("station", station, box.slot)
-        await global.player.close_shulker()
+        let shulker_contents = await actions.get_shukler_contents(station, box.slot)
 
         shulker_contents.forEach((x: any) => {
             x["slot"] = box.slot;
@@ -130,7 +129,7 @@ function find_spaces(items: any, inventory: any, station: any) {
 }
 
 function open_slots(inventory: any) {
-    const counts = global.player.get_counts()
+    const counts = actions.get_counts()
 
     let result: any = []
 
@@ -152,9 +151,4 @@ function matches(item: any, other: any): boolean {
     return (item.name === other.name)  
     && (item.metadata === other.metadata)
     && (JSON.stringify(item.nbt) === JSON.stringify(other.nbt))
-}
-
-export async function testin() {
-    // await global.player.open("station", 2)
-    await global.player.open_shulker("station", 2, 0)
 }
