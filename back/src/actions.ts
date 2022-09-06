@@ -1,12 +1,12 @@
+import { request } from "http"
 
 
 
 export async function move_items(requests: any) {
+    requests = structuredClone(requests)
 
     console.log("move", requests)
 
-
-    requests = structuredClone(requests)
     // move_items converts a group of move requests to player requests
     console.log("clone", requests)
 
@@ -17,6 +17,11 @@ export async function move_items(requests: any) {
     // move items out of shulker
     requests = await move_items_from_shulker(requests)
     console.log("move items from shukler", requests)
+
+
+    // move items into shulker
+    requests = await move_items_to_shulker(requests)
+    console.log("move items to shukler", requests)
 
 
     const chunkSize = 27 // inventory (except hotbar)
@@ -130,6 +135,83 @@ async function move_items_from_shulker(requests: any) {
 
 }
 
+async function move_items_to_shulker(requests: any) {
+    const shulker_inventory_start = 27
+    const double_chest_inventory_start = 54
+
+
+    const to_move = requests.filter( (r: any) => (r.from.shulker_slot == null) && (r.to.shulker_slot != null))
+
+
+    let updated_requests = []
+    for( let move of to_move ) {
+        // Find shulker (moving with)
+        let found = requests.find( (r: any) => 
+            (move.to.chest_type == r.to.chest_type)
+            && (move.to.chest == r.to.chest)
+            && (move.to.slot == r.to.slot)
+        )
+
+        if (found) {
+            await global.player.open(move.from.chest_type, move.from.chest)
+            await global.player.lclick(move.from.slot)
+            for(let i=0; i < move.count; i++) {
+                await global.player.rclick(double_chest_inventory_start)
+            }
+
+            await global.player.open_shulker(found.from.chest_type, found.from.chest, found.from.slot)
+
+            await global.player.lclick(shulker_inventory_start)
+            await global.player.lclick(move.to.shulker_slot)
+
+            await global.player.close_shulker()
+
+            // update from to the new position
+
+            updated_requests.push({
+                "item": move.item,
+                "to": move.to,
+                "from": {
+                    "chest_type": found.from.chest_type,
+                    "chest": found.from.chest,
+                    "slot": found.from.slot,
+                    "shulker_slot": found.from.shulker_slot,
+                },
+            })
+
+
+        } else {
+            // "actions" has to trust "inventory" that a shulker is already there
+            await global.player.open(move.from.chest_type, move.from.chest)
+            await global.player.lclick(move.from.slot)
+            for(let i=0; i < move.count; i++) {
+                await global.player.rclick(double_chest_inventory_start)
+            }
+
+            await global.player.open_shulker(move.to.chest_type, move.to.chest, move.to.slot)
+           
+            await global.player.lclick(shulker_inventory_start)
+            await global.player.lclick(move.to.shulker_slot)
+
+            await global.player.close_shulker()
+
+        }
+
+        
+    }
+
+    for (const i of to_move.map((m: any) => requests.indexOf(m)).sort().reverse()) {
+        requests.splice(i, 1);
+    }
+
+    requests.concat(updated_requests)
+
+
+    return requests
+
+}
+
+
 export async function take_inventory() {
     let result = []
 
@@ -176,3 +258,23 @@ export function get_counts() {
     return global.player.get_counts()
 }
 
+async function test_request() {
+    const requests = [
+        {
+            "item": {"name": "dirt"},
+            "from": {
+                "chest_type": "station",
+                "chest": 0,
+                "slot": 0,
+                "shulker_slot": null,
+            },
+            "to": {
+                "chest_type": "station",
+                "chest": 0,
+                "slot": 1,
+                "shulker_slot": 0,
+            }
+        }
+    ]
+    move_items(requests)
+}
