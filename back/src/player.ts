@@ -51,7 +51,7 @@ export class Player {
 
 		const location = this.chest_to_location(chest_type, chest_number)
 
-		this.open_container = await this.bot.openChest(this.bot.blockAt(location))
+		this.open_container = await this.bot.openContainer(this.bot.blockAt(location))
 
 		return this.log();
 	}
@@ -238,7 +238,7 @@ export class Player {
 		const move_line = async (x :any, z :any) =>  {
 			let position = vec3(x + 0.5, BUILD['location'][1], z + 0.5)
 
-			await this.bot.lookAt(position);
+			await this.bot.lookAt(position, true);
 			this.bot.setControlState('forward', true);
 
 			return new Promise<void>(resolve => {

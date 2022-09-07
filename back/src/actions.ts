@@ -147,7 +147,8 @@ async function move_items_to_shulker(requests: any) {
     for( let move of to_move ) {
         // Find shulker (moving with)
         let found = requests.find( (r: any) => 
-            (move.to.chest_type == r.to.chest_type)
+            ( r != move )
+            && (move.to.chest_type == r.to.chest_type)
             && (move.to.chest == r.to.chest)
             && (move.to.slot == r.to.slot)
         )
@@ -158,6 +159,7 @@ async function move_items_to_shulker(requests: any) {
             for(let i=0; i < move.count; i++) {
                 await global.player.rclick(double_chest_inventory_start)
             }
+            await global.player.lclick(move.from.slot)
 
             await global.player.open_shulker(found.from.chest_type, found.from.chest, found.from.slot)
 
@@ -187,6 +189,7 @@ async function move_items_to_shulker(requests: any) {
             for(let i=0; i < move.count; i++) {
                 await global.player.rclick(double_chest_inventory_start)
             }
+            await global.player.lclick(move.from.slot)
 
             await global.player.open_shulker(move.to.chest_type, move.to.chest, move.to.slot)
            
@@ -259,6 +262,9 @@ export function get_counts() {
 }
 
 async function test_request() {
+
+    await new Promise(r => setTimeout(r, 7000))
+
     const requests = [
         {
             "item": {"name": "dirt"},
@@ -278,3 +284,4 @@ async function test_request() {
     ]
     move_items(requests)
 }
+test_request()
