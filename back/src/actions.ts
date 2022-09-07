@@ -1,7 +1,3 @@
-import { request } from "http"
-
-
-
 export async function move_items(requests: any) {
     requests = structuredClone(requests)
 
@@ -124,6 +120,8 @@ async function move_items_from_shulker(requests: any) {
 
         await global.player.lclick(double_chest_inventory_start)
         await global.player.lclick(move.to.slot)
+
+        await global.player.close()
     }
 
 
@@ -279,7 +277,8 @@ async function test_request() {
                 "chest": 0,
                 "slot": 1,
                 "shulker_slot": 0,
-            }
+            },
+            "count": 1,
         }
     ]
     move_items(requests)

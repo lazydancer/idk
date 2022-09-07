@@ -1,7 +1,6 @@
 <script>
   import { Accordion, AccordionItem } from 'svelte-collapsible'
   import { onMount } from 'svelte';
-  import { get_image } from './image.js';
 
   let items = [];
 
@@ -20,7 +19,7 @@
     console.log(items)
 
 
-    items = items.map(v => ({...v, orderTempTextBox: 1, orderCount: 0, imageLoc: get_image(v.name)}))
+    items = items.map(v => ({...v, orderTempTextBox: 1, orderCount: 0}))
     items.forEach((item, i) => {item.key = i + 1;});
 
     visibleItems = items;
@@ -120,18 +119,12 @@
       </div>
     </form>
 
-    <div class="mx-5 mt-1 flex-1">
-        <button on:click={()=>deposit()} class="ml-2 px-4 py-2 border border-none shadow-sm text-sm  text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
-        focus:ring-offset-2 focus:ring-red-600 float-right">Deposit</button>
-    </div>
 
     <div class="mx-5 mt-1 flex-1">
-      {#if orderLength == 0}
-        <button class="px-4 py-2 border border-gray text-sm text-gray-600 float-right cursor-default">Order: {orderLength}</button>
-      {:else}
       <button on:click={()=>setOrder()} class="ml-2 px-4 py-2 border border-none shadow-sm text-sm  text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
-      focus:ring-offset-2 focus:ring-red-600 float-right">Order: {orderLength}</button>
-      {/if}
+      focus:ring-offset-2 focus:ring-red-600 float-right">Withdraw</button>
+      <button on:click={()=>deposit()} class="ml-2 px-4 py-2 border border-none shadow-sm text-sm  text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
+        focus:ring-offset-2 focus:ring-red-600 float-right">Deposit</button>
     </div>
   </div>
 </header>
@@ -142,9 +135,9 @@
     {#each groups as g}
       <li>
         {#if g == group}
-          <span on:click={() => changeGroup({g})} class="block py-1 cursor-pointer font-bold">{g}</span>
+          <p on:click={() => changeGroup({g})} class="block pb-3 cursor-pointer font-bold text-sm">{g}</p>
         {:else}
-          <span on:click={() => changeGroup({g})} class="block py-1 cursor-pointer">{g}</span>
+          <p on:click={() => changeGroup({g})} class="block pb-3 cursor-pointer text-sm">{g}</p>
         {/if}
       </li>
     {/each}
@@ -159,7 +152,7 @@
                   <img src="static/icons/{item.name}.png" style="width:32px; height:32px;" />
                 <!-- <div style="width:32px; height:32px; background-image:url(static/items-sprite.webp); background-position: -{item.imageLoc[0]}px -{item.imageLoc[1]}px"></div> -->
               </div>
-              <h2 class="flex-1 w-72 pt-1">{ item.display_name }</h2>
+              <p class="flex-1 text-sm w-72 pt-2">{ item.display_name }</p>
               <p class="flex-1 text-sm pt-1.5 pr-2">{item.count}</p>
 
               {#if item.orderCount > 0}
