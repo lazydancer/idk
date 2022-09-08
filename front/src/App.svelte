@@ -7,6 +7,7 @@
   let group = "All"
   let groups = ["All", "Natural", "Wood", "Mob Drops", "Stone", "Colours", "Combat", "Minerals", "Tools", "Mining", "Brewing", "Nether", "End", "Redstone", "Enchanting", "Server Specific"];
 
+  let accordian_key = null
 
   let displayOrder = false;
 
@@ -15,9 +16,6 @@
   onMount(async () => {
     const res = await fetch(`http://localhost:8000/api/list`);
     items = await res.json();
-    console.log("Hello")
-    console.log(items)
-
 
     items = items.map(v => ({...v, orderTempTextBox: 1, orderCount: 0}))
     items.forEach((item, i) => {item.key = i + 1;});
@@ -36,6 +34,7 @@
     displayOrder = true
     visibleItems = items.filter(item => item.orderCount > 0)
     group = null;
+    accordian_key = null;
   }
 
 
@@ -92,6 +91,8 @@
       headers: { 'Content-Type': 'application/json'}
     })
   }
+  
+
 
 </script>
 
@@ -144,22 +145,18 @@
 
   </ul>
   <div class="flex-1 pl-6 ml-36">
-    <Accordion>
+    <Accordion bind:key = {accordian_key} >
       {#each visibleItems as item}
         <AccordionItem key={item.key}>
             <div slot='header' class="flex flex-row py-1">
               <div class="mr-4" style="width: 37px; height: 37px; background: #8B8B8B; border: 2px solid; border-color: #373737 #FFF #FFF #373737">
-                  <img src="static/icons/{item.name}.png" style="width:32px; height:32px;" />
+                  <img src="static/icons/{item.name}.png" style="width:32px; height:32px;" alt={item.name} />
                 <!-- <div style="width:32px; height:32px; background-image:url(static/items-sprite.webp); background-position: -{item.imageLoc[0]}px -{item.imageLoc[1]}px"></div> -->
               </div>
               <p class="flex-1 text-sm w-72 pt-2">{ item.display_name }</p>
               <p class="flex-1 text-sm pt-1.5 pr-2">{item.count}</p>
-
-              {#if item.orderCount > 0}
-                <p class="flex-1 text-sm pt-1.5 pr-2 font-bold">{item.orderCount}</p>
-              {:else}
-                <p class="flex-1 text-sm pt-1.5 pr-2"></p>
-              {/if}
+              <p class="flex-1 text-sm pt-1.5 pr-2">{#if item.orderCount > 0}{item.orderCount}{/if}</p>
+                            
             </div>
             
             <div slot='body' class='pl-4 pb-2 flex flex-row'>
