@@ -1,5 +1,6 @@
 import { get_items, insert, apply_moves} from './db'
 import * as actions from './actions'
+import * as types from './types'
 
 
 export async function inventory() {
@@ -69,16 +70,16 @@ function find(items: any, inventory: any, station: number) {
             if ( count > inv_item.count ) {
                 result.push({
                     "item": inv_item,
-                    "from": { "chest_type": "inventory", "chest": inv_item.chest, "slot": inv_item.slot, "shulker_slot": inv_item.shulker_slot },
-                    "to": { "chest_type": "station", "chest": station, "slot": open_slot, "shulker_slot": null},
+                    "from": { "chest_type": types.ChestType.Inventory, "chest": inv_item.chest, "slot": inv_item.slot, "shulker_slot": inv_item.shulker_slot },
+                    "to": { "chest_type": types.ChestType.Station, "chest": station, "slot": open_slot, "shulker_slot": null},
                     "count": inv_item.count,
                 })
                 count -= inv_item.count
             } else {
                 result.push({
                     "item": inv_item,
-                    "from": { "chest_type": "inventory", "chest": inv_item.chest, "slot": inv_item.slot, "shulker_slot": inv_item.shulker_slot},
-                    "to": { "chest_type": "station", "chest": station, "slot": open_slot, "shulker_slot": null},
+                    "from": { "chest_type": types.ChestType.Inventory, "chest": inv_item.chest, "slot": inv_item.slot, "shulker_slot": inv_item.shulker_slot},
+                    "to": { "chest_type": types.ChestType.Station, "chest": station, "slot": open_slot, "shulker_slot": null},
                     "count": count,
                 })
                 count = 0
@@ -109,16 +110,16 @@ function find_spaces(items: any, inventory: any, station: any) {
 
         result.push({
             "item": item,
-            "from": { "chest_type": "station", "chest": station, "slot": item.slot, "shulker_slot": null},
-            "to": { "chest_type": "inventory", "chest": open_slots_list[i].chest, "slot": open_slots_list[i].slot, "shulker_slot": null},
+            "from": { "chest_type": types.ChestType.Station, "chest": station, "slot": item.slot, "shulker_slot": null},
+            "to": { "chest_type": types.ChestType.Inventory, "chest": open_slots_list[i].chest, "slot": open_slots_list[i].slot, "shulker_slot": null},
             "count": item.count
         })
         
         items.filter((x: any) => (x.shulker_slot != null) && (x.slot == item.slot)).forEach((y: any) => {
             result.push({
                 "item": y,
-                "from": { "chest_type": "station", "chest": station, "slot": item.slot, "shulker_slot": y.shulker_slot},
-                "to": { "chest_type": "inventory", "chest": open_slots_list[i].chest, "slot": open_slots_list[i].slot, "shulker_slot": y.shulker_slot},
+                "from": { "chest_type": types.ChestType.Station, "chest": station, "slot": item.slot, "shulker_slot": y.shulker_slot},
+                "to": { "chest_type": types.ChestType.Inventory, "chest": open_slots_list[i].chest, "slot": open_slots_list[i].slot, "shulker_slot": y.shulker_slot},
                 "count": y.count
             })
         })

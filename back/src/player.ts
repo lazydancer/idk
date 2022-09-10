@@ -3,6 +3,8 @@ const vec3 = require('vec3')
 
 require('dotenv').config()
 
+import * as types from './types'
+
 
 let BUILD = {
 	location: [15, 83, 130],
@@ -42,7 +44,7 @@ export class Player {
 		this.shulker_location = null
 	}
 
-	async open(chest_type: string, chest_number: number)  {
+	async open(chest_type: types.ChestType, chest_number: number)  {
 		if ( this.open_container != null ) {
 			await this.bot.closeWindow(this.open_container)
 		}
@@ -315,9 +317,9 @@ export class Player {
 
 	}
 
-	private chest_to_location(chest_type: string, chest_number: number): any {
+	private chest_to_location(chest_type: types.ChestType, chest_number: number): any {
 
-		if(chest_type == 'inventory') {
+		if(chest_type == types.ChestType.Inventory) {
 
 			const offset = [BUILD['location'][0] + 2, BUILD['location'][1], BUILD['location'][2] - 3]
 
@@ -329,15 +331,15 @@ export class Player {
 
 		}
 
-		if (chest_type == 'station') {
+		if (chest_type == types.ChestType.Station) {
 			return vec3(BUILD['location'][0] + 5 + 2*chest_number, BUILD['location'][1], BUILD['location'][2] - 1)
 		}
 
 	}
 
-	private standing_location(chest_type: string, chest_number: number): any {
+	private standing_location(chest_type: types.ChestType, chest_number: number): any {
 
-		if(chest_type == 'inventory') {
+		if(chest_type == types.ChestType.Inventory) {
 			const offset = [BUILD['location'][0] + 2, BUILD['location'][1], BUILD['location'][2] - 3]
 
 			const x = Math.floor(chest_number / (6*BUILD['depth'])) * 3
@@ -346,7 +348,7 @@ export class Player {
 			return [x + offset[0] + 1, z + offset[2]]
 		}
 
-		if (chest_type == 'station') {
+		if (chest_type == types.ChestType.Station) {
 			return [BUILD['location'][0] + 5 + 2*chest_number, BUILD['location'][2] - 2]
 		}
 	}

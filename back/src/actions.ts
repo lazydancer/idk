@@ -1,3 +1,6 @@
+import * as types from './types'
+
+
 export async function move_items(requests: any) {
     requests = structuredClone(requests)
 
@@ -217,16 +220,15 @@ export async function take_inventory() {
     let result = []
 
     let counts = global.player.get_counts()
-    // for (let i = 0; i < counts["inventory"]; i++) {
-    for (let chest = 0; chest < 18; chest++) {
-        let inv = await global.player.open("inventory", chest)
+    for (let chest = 0; chest < counts["inventory"]; chest++) {
+        let inv = await global.player.open(types.ChestType.Inventory, chest)
 
         inv = inv.map((x: any) => ({...x, chest: chest, shulker_slot: null}))
         result.push(inv) 
 
         // Open each shulker to record internals
         for (const box of inv.filter( (x: any) => x.name.endsWith("shulker_box"))) {
-            let shulker_contents = await global.player.open_shulker("inventory", chest, box.slot)
+            let shulker_contents = await global.player.open_shulker(types.ChestType.Inventory, chest, box.slot)
             await global.player.close_shulker()
 
             shulker_contents.forEach((x: any) => {
@@ -244,12 +246,12 @@ export async function take_inventory() {
 
 
 export async function get_chest_contents(station: number) {
-    let r = await global.player.open("station", station)
+    let r = await global.player.open(types.ChestType.Station, station)
     return r
 }
 
 export async function get_shukler_contents(station: number, slot: number) {
-    let r = await global.player.open_shulker("station", station, slot)
+    let r = await global.player.open_shulker(types.ChestType.Station, station, slot)
     await global.player.close_shulker()
 
     return r
@@ -267,13 +269,13 @@ async function test_request() {
         {
             "item": {"name": "dirt"},
             "from": {
-                "chest_type": "station",
+                "chest_type": types.ChestType.Station,
                 "chest": 0,
                 "slot": 0,
                 "shulker_slot": null,
             },
             "to": {
-                "chest_type": "station",
+                "chest_type": types.ChestType.Station,
                 "chest": 0,
                 "slot": 1,
                 "shulker_slot": 0,
@@ -283,4 +285,4 @@ async function test_request() {
     ]
     move_items(requests)
 }
-test_request()
+// test_request()
