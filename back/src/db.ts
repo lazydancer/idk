@@ -57,10 +57,20 @@ export async function apply_moves(moves: any): Promise<any> {
 
         // Add items to
         if ( move.to.chest_type == types.ChestType.Inventory) {
-            let exists = await pool.query("SELECT * FROM locations WHERE slot=$1 and chest=$2 and shulker_slot=$3",  [move.to.slot, move.to.chest, move.to.shulker_slot]) 
+            let exists
+            if (move.to.shulker_slot == null) {
+                exists = await pool.query("SELECT * FROM locations WHERE slot=$1 and chest=$2 and shulker_slot is null",  [move.to.slot, move.to.chest]) 
+            } else {
+                exists = await pool.query("SELECT * FROM locations WHERE slot=$1 and chest=$2 and shulker_slot=$3",  [move.to.slot, move.to.chest, move.to.shulker_slot]) 
+
+            }
             
             if (exists.rowCount > 0) {
-                await pool.query("UPDATE locations SET count = count + $1 WHERE slot=$2 and chest=$3 and shulker_slot=$4", [move.count, move.to.slot, move.to.chest, move.to.shulker_slot])        
+                if (move.to.shulker_slot == null) {
+                    await pool.query("UPDATE locations SET count = count + $1 WHERE slot=$2 and chest=$3 and shulker_slot is null", [move.count, move.to.slot, move.to.chest])        
+                } else {
+                    await pool.query("UPDATE locations SET count = count + $1 WHERE slot=$2 and chest=$3 and shulker_slot=$4", [move.count, move.to.slot, move.to.chest, move.to.shulker_slot])        
+                }
             } else {
                 await pool.query("INSERT INTO locations (metadata, name, display_name, stack_size, slot, count, nbt, chest, shulker_slot) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", [move.item.metadata, move.item.name, move.item.display_name, move.item.stack_size, move.to.slot, move.item.count, move.item.nbt, move.to.chest, move.to.shulker_slot])
 
