@@ -38,3 +38,7 @@ Base action performer, listens for requests from inventory
 - Moved from rust, too much complexity with async webserver, database and messaging
 - Now using typescipt
 - Player attached to back, no need for communication layer
+
+2022-09-10
+- ChestType added
+- Ability to withdraw and deposit from shulkers 
