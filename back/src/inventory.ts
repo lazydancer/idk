@@ -11,7 +11,7 @@ export async function inventory() {
 
 }
 
-export async function withdraw(items: any, station: number) {
+export async function withdraw(items: {item: types.Item, count: number}[], station: number) {
     const inventory = await get_items();
 
     let moves = find(items, inventory, station)
@@ -23,8 +23,6 @@ export async function withdraw(items: any, station: number) {
 
 export async function deposit(station: number) {
     let items = await actions.get_chest_contents(station)
-
-    const inventory = await get_items()
 
     let shulkers = []
     for (const box of items.filter( (x: any) => x.name.endsWith("shulker_box"))) {
@@ -38,9 +36,13 @@ export async function deposit(station: number) {
 
         shulkers.push(shulker_contents)
     }
-    
     items = items.concat(shulkers.flat())
-    const moves = find_spaces(items, inventory, station)
+    
+    const inventory = await get_items()
+    // Temp for testing new type    
+    let old_inventory = inventory.map(({ item, location }) => ({ ...item, ...location }) )
+    
+    const moves = find_spaces(items, old_inventory, station)
 
     console.log(moves)
 
@@ -52,33 +54,31 @@ export async function deposit(station: number) {
 
 
 
-function find(items: any, inventory: any, station: number) {
+function find(items: {item: types.Item, count: number}[], inventory: {item: types.Item, location: types.Location, count: number}[], station: number) {
     let result = [];
     
     let open_slot = 0
 
-    let item: any
-    for (item of items) {
+    for (let item of items) {
         let count = item.count;
 
-        let inv_item: any
-        for (inv_item of inventory) {
-            if ( !matches(item, inv_item) ){
+        for (let inv_item of inventory) {
+            if ( !matches(item.item, inv_item.item) ){
                 continue;
             }
 
             if ( count > inv_item.count ) {
                 result.push({
-                    "item": inv_item,
-                    "from": { "chest_type": types.ChestType.Inventory, "chest": inv_item.chest, "slot": inv_item.slot, "shulker_slot": inv_item.shulker_slot },
+                    "item": inv_item.item,
+                    "from": { "chest_type": types.ChestType.Inventory, "chest": inv_item.location.chest, "slot": inv_item.location.slot, "shulker_slot": inv_item.location.shulker_slot },
                     "to": { "chest_type": types.ChestType.Station, "chest": station, "slot": open_slot, "shulker_slot": null},
                     "count": inv_item.count,
                 })
                 count -= inv_item.count
             } else {
                 result.push({
-                    "item": inv_item,
-                    "from": { "chest_type": types.ChestType.Inventory, "chest": inv_item.chest, "slot": inv_item.slot, "shulker_slot": inv_item.shulker_slot},
+                    "item": inv_item.item,
+                    "from": { "chest_type": types.ChestType.Inventory, "chest": inv_item.location.chest, "slot": inv_item.location.slot, "shulker_slot": inv_item.location.shulker_slot},
                     "to": { "chest_type": types.ChestType.Station, "chest": station, "slot": open_slot, "shulker_slot": null},
                     "count": count,
                 })
@@ -129,14 +129,14 @@ function find_spaces(items: any, inventory: any, station: any) {
 
 }
 
-function open_slots(inventory: any) {
+function open_slots(inventory: {item: types.Item, location: types.Location, count: number}[]): any {
     const counts = actions.get_counts()
 
     let result: any = []
 
     for(let i=0; i<counts["inventory"]; i++) {
         for(let j=0; j<54; j++) {
-            if(!inventory.some((e: any) => (e.chest === i) && (e.slot === j))){
+            if(!inventory.some((e: any) => (e.location.chest === i) && (e.location.slot === j))){
                 result.push({
                     "chest": i,
                     "slot": j,
@@ -148,7 +148,7 @@ function open_slots(inventory: any) {
     return result;
 }
 
-function matches(item: any, other: any): boolean {
+function matches(item: types.Item, other: types.Item): boolean {
     return (item.name === other.name)  
     && (item.metadata === other.metadata)
     && (JSON.stringify(item.nbt) === JSON.stringify(other.nbt))

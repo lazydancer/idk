@@ -11,7 +11,7 @@ export async function move_items(requests: any) {
 
     // filter full shulker moves
     requests = filter_internal_shulker_moves(requests)
-    console.log("filter internal shulker movess", requests)
+    console.log("filter internal shulker moves", requests)
 
     // move items out of shulker
     requests = await move_items_from_shulker(requests)

@@ -9,12 +9,34 @@ const pool = new Pool({
 
 import * as types from './types'
 
-export async function get_items(): Promise<any> {
+export async function get_items(): Promise<{item: types.Item, location: types.Location, count: number}[]> {
     try {
-        const a = await pool.query("SELECT * FROM locations")
-        return a["rows"]
+        const request = await pool.query("SELECT * FROM locations")
+
+        return request["rows"].map( x => (
+            {
+                item: {
+                    id: 0, // placeholder, will come from database (x.id)
+                    name: x.name,
+                    metadata: x.metadata,
+                    nbt: x.nbt,
+                    display_name: x.display_name,
+                    stack_size: x.stack_size,
+                },
+
+                location: {
+                    chest_type: types.ChestType.Inventory,
+                    chest: x.chest,
+                    slot: x.slot,
+                    shulker_slot: x.shulker_slot,
+                },
+
+                count: x.count,
+            }   
+        ))
+
     } catch(err) {
-        console.log(err)
+        throw(err)
     }
 } 
 
@@ -23,8 +45,8 @@ export async function get_summary(): Promise<{item: types.Item, count: number}[]
     try {
         const request = await pool.query("SELECT metadata, nbt, name, MAX(display_name) as display_name, MAX(stack_size) as stack_size, SUM(count) as count FROM locations GROUP BY metadata, nbt, name")
 
-        let a = request["rows"].filter( (x: any) => !x.name.endsWith("shulker_box")).map( x => {
-            return {
+        return request["rows"].filter( (x: any) => !x.name.endsWith("shulker_box")).map( x => (
+            {
                 item: {
                     id: 0, // placeholder, will come from database (x.id)
                     name: x.name,
@@ -35,9 +57,8 @@ export async function get_summary(): Promise<{item: types.Item, count: number}[]
                 },
                 count: x.count,
             }
-        })
+        ))
 
-        return a
     } catch(err) {
         throw(err)
     }

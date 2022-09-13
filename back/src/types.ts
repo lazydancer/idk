@@ -14,7 +14,7 @@ export interface Item {
 
 export interface Location {
     chest_type: ChestType;
-    number: number;
+    chest: number;
     slot: number;
     shulker_slot: number | null;
 }
