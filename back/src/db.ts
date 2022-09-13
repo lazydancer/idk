@@ -19,12 +19,27 @@ export async function get_items(): Promise<any> {
 } 
 
 // Group items for total counts
-export async function get_summary(): Promise<any> {
+export async function get_summary(): Promise<{item: types.Item, count: number}[]> {
     try {
-        const a = await pool.query("SELECT metadata, nbt, name, MAX(display_name) as display_name, SUM(count) as count FROM locations GROUP BY metadata, nbt, name")
-        return a["rows"].filter( (x: any) => !x.name.endsWith("shulker_box"))   
+        const request = await pool.query("SELECT metadata, nbt, name, MAX(display_name) as display_name, MAX(stack_size) as stack_size, SUM(count) as count FROM locations GROUP BY metadata, nbt, name")
+
+        let a = request["rows"].filter( (x: any) => !x.name.endsWith("shulker_box")).map( x => {
+            return {
+                item: {
+                    id: 0, // placeholder, will come from database (x.id)
+                    name: x.name,
+                    metadata: x.metadata,
+                    nbt: x.nbt,
+                    display_name: x.display_name,
+                    stack_size: x.stack_size,
+                },
+                count: x.count,
+            }
+        })
+
+        return a
     } catch(err) {
-        console.log(err)
+        throw(err)
     }
 } 
 

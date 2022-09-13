@@ -17,7 +17,7 @@
     const res = await fetch(`http://localhost:8000/api/list`);
     items = await res.json();
 
-    items = items.map(v => ({...v, orderTempTextBox: 1, orderCount: 0}))
+    items = items.map(v => ({...v.item, orderTempTextBox: 1, orderCount: 0, count: v.count}))
     items.forEach((item, i) => {item.key = i + 1;});
 
     visibleItems = items;
@@ -59,10 +59,6 @@
       }
     }
   }
-
-  $: orderLength = items.filter(item => item.orderCount > 0).length; 
-
-
 
   let ordered = false
   let ordered_message = ""
