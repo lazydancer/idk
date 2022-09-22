@@ -35,7 +35,7 @@ export class Player {
 	constructor() {
 		this.bot = mineflayer.createBot({
 				host: "localhost",
-				port: 25566,
+				port: 25565,
 				username: process.env['MC_EMAIL'],
 				password: process.env['MC_PASS'],
 				auth: 'microsoft' 
@@ -44,18 +44,34 @@ export class Player {
 		this.shulker_location = null
 	}
 
-	async open(chest_type: types.ChestType, chest_number: number)  {
+	async open(chest_type: types.ChestType, chest: number)  {
 		if ( this.open_container != null ) {
 			await this.bot.closeWindow(this.open_container)
 		}
 
-		await this.move(this.standing_location(chest_type, chest_number))
+		await this.move(this.standing_location(chest_type, chest))
 
-		const location = this.chest_to_location(chest_type, chest_number)
+		const location = this.chest_to_location(chest_type, chest)
 
 		this.open_container = await this.bot.openContainer(this.bot.blockAt(location))
 
-		return this.log();
+		return this.open_container.containerItems().map((o: any) => ({
+			item: { 
+				id: 0, 
+				name: o.name, 
+				metadata: o.metadata, 
+				nbt: o.nbt, 
+				display_name: o.displayName, 
+				stack_size: o.stackSize,
+			},
+			location: { 
+				chest_type, 
+				chest: chest, 
+				slot: o.slot, 
+				shulker_slot: null,
+			},
+			count: o.count,
+		}));
 	}
 
 	async lclick(slot: any) {
@@ -135,21 +151,26 @@ export class Player {
 		let block = await this.bot.blockAt(vec3(open_place[0], BUILD["location"][1], open_place[1]))
 		let window = await this.bot.openContainer(block)
 
-		let slots = window.containerItems()	
-
-		slots.forEach((o:any) => {
-			o["display_name"] = o["displayName"];
-			o["stack_size"] = o["stackSize"];
-			o["shulker_slot"] = o["slot"];
-		})
-
-		slots = slots.map((o: any) => 
-			(({ display_name, count, metadata, name, nbt, slot, stack_size, shulker_slot}) => ({ display_name, count, metadata, name, nbt, slot, stack_size, shulker_slot}))(o))
-
 		this.shulker_location = [chest, chest_type, slot, window, block]		
 
-
-		return slots
+		return window.containerItems().map((o: any) => ({
+			item: { 
+				id: 0, 
+				name: o.name, 
+				metadata: o.metadata, 
+				nbt: o.nbt, 
+				display_name: o.displayName, 
+				stack_size: o.stackSize,
+			},
+			location: { 
+				chest_type, 
+				chest: chest, 
+				slot: slot, 
+				shulker_slot: o.slot,
+			},
+			count: o.count,
+		}))
+		
 		
 	}
 
@@ -293,19 +314,31 @@ export class Player {
 		return "done";
 	}
 
-	private log() {
-		let slots = this.open_container.containerItems()	
+	private log(chest_type: types.ChestType, chest: number) {
+		let slots = this.open_container.containerItems();	
 
-		slots.forEach((o:any) => {
-			o["display_name"] = o["displayName"];
-			o["stack_size"] = o["stackSize"];
-		})
+		let r = slots.map((o: any) => ({
+				item: { 
+					id: 0, 
+					name: o.name, 
+					metadata: o.metadata, 
+					nbt: o.nbt, 
+					display_name: o.displayName, 
+					stack_size: o.stackSize,
+				},
+				location: { 
+					chest_type, 
+					chest: chest, 
+					slot: o.slot, 
+					shulker_slot: null,
+				},
+				count: o.count,
+		}));
 
-		slots = slots.map((o: any) => 
-			(({ display_name, count, metadata, name, nbt, slot, stack_size}) => ({ display_name, count, metadata, name, nbt, slot, stack_size}))(o))
+		console.log(r );
 
+		return r
 
-		return slots;
 	}
 
 	get_counts() {

@@ -64,16 +64,16 @@ export async function get_summary(): Promise<{item: types.Item, count: number}[]
     }
 } 
 
-export async function insert(items: any): Promise<any> {
+export async function insert(items: {item: types.Item, location: types.Location, count: number}[]): Promise<any> {
 
     for (const item of items) {
         await pool.query("INSERT INTO locations (metadata, name, display_name, stack_size, slot, count, nbt, chest, shulker_slot) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-        [item.metadata, item.name, item.display_name, item.stack_size, item.slot, item.count, item.nbt, item.chest, item.shulker_slot])
+        [item.item.metadata, item.item.name, item.item.display_name, item.item.stack_size, item.location.slot, item.count, item.item.nbt, item.location.chest, item.location.shulker_slot])
     }
 
 }
 
-export async function apply_moves(moves: any): Promise<any> {
+export async function apply_moves(moves: {item: types.Item, from: types.Location, to: types.Location, count: number}[]): Promise<any> {
 
     for (const move of moves) {
 
@@ -108,7 +108,7 @@ export async function apply_moves(moves: any): Promise<any> {
                     await pool.query("UPDATE locations SET count = count + $1 WHERE slot=$2 and chest=$3 and shulker_slot=$4", [move.count, move.to.slot, move.to.chest, move.to.shulker_slot])        
                 }
             } else {
-                await pool.query("INSERT INTO locations (metadata, name, display_name, stack_size, slot, count, nbt, chest, shulker_slot) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", [move.item.metadata, move.item.name, move.item.display_name, move.item.stack_size, move.to.slot, move.item.count, move.item.nbt, move.to.chest, move.to.shulker_slot])
+                await pool.query("INSERT INTO locations (metadata, name, display_name, stack_size, slot, count, nbt, chest, shulker_slot) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", [move.item.metadata, move.item.name, move.item.display_name, move.item.stack_size, move.to.slot, move.count, move.item.nbt, move.to.chest, move.to.shulker_slot])
 
             }
 

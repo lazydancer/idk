@@ -24,27 +24,12 @@ export async function withdraw(items: {item: types.Item, count: number}[], stati
 export async function deposit(station: number) {
     let items = await actions.get_chest_contents(station)
 
-    let shulkers = []
-    for (const box of items.filter( (x: any) => x.name.endsWith("shulker_box"))) {
-
-        let shulker_contents = await actions.get_shukler_contents(station, box.slot)
-
-        shulker_contents.forEach((x: any) => {
-            x["slot"] = box.slot;
-            x["chest"] = box.chest;
-        })
-
-        shulkers.push(shulker_contents)
-    }
-    items = items.concat(shulkers.flat())
+    let shulker_items = await learn_shulker_contents(items)
+    items = items.concat(shulker_items)
     
     const inventory = await get_items()
-    // Temp for testing new type    
-    let old_inventory = inventory.map(({ item, location }) => ({ ...item, ...location }) )
     
-    const moves = find_spaces(items, old_inventory, station)
-
-    console.log(moves)
+    const moves = find_spaces(items, inventory, station)
 
     await actions.move_items(moves)
 
@@ -52,9 +37,26 @@ export async function deposit(station: number) {
 
 }
 
+async function learn_shulker_contents(items: {item: types.Item, location: types.Location}[]): Promise<{item: types.Item, location: types.Location}[]> {
+    let shulkers = []
 
+    
+    for (const box of items.filter( x => x.item.name.endsWith("shulker_box"))) {
 
-function find(items: {item: types.Item, count: number}[], inventory: {item: types.Item, location: types.Location, count: number}[], station: number) {
+        let shulker_contents = await actions.get_shukler_contents(box.location.chest, box.location.slot)
+
+        shulker_contents.forEach((x: {item: types.Item, location: types.Location}) => {
+            x.location.slot = box.location.slot;
+            x.location.chest = box.location.chest;
+        })
+
+        shulkers.push(shulker_contents)
+    }
+
+    return shulkers.flat()
+}
+
+function find(items: {item: types.Item, count: number}[], inventory: {item: types.Item, location: types.Location, count: number}[], station: number): {item: types.Item, from: types.Location, to: types.Location, count: number}[] {
     let result = [];
     
     let open_slot = 0
@@ -67,29 +69,21 @@ function find(items: {item: types.Item, count: number}[], inventory: {item: type
                 continue;
             }
 
-            if ( count > inv_item.count ) {
-                result.push({
-                    "item": inv_item.item,
-                    "from": { "chest_type": types.ChestType.Inventory, "chest": inv_item.location.chest, "slot": inv_item.location.slot, "shulker_slot": inv_item.location.shulker_slot },
-                    "to": { "chest_type": types.ChestType.Station, "chest": station, "slot": open_slot, "shulker_slot": null},
-                    "count": inv_item.count,
-                })
-                count -= inv_item.count
-            } else {
-                result.push({
-                    "item": inv_item.item,
-                    "from": { "chest_type": types.ChestType.Inventory, "chest": inv_item.location.chest, "slot": inv_item.location.slot, "shulker_slot": inv_item.location.shulker_slot},
-                    "to": { "chest_type": types.ChestType.Station, "chest": station, "slot": open_slot, "shulker_slot": null},
-                    "count": count,
-                })
-                count = 0
-            }
+            result.push({
+                "item": inv_item.item,
+                "from": inv_item.location,
+                "to": { "chest_type": types.ChestType.Station, "chest": station, "slot": open_slot, "shulker_slot": null},
+                "count": inv_item.count,
+            })
 
-            open_slot += 1
+            count -= inv_item.count
 
             if (count === 0) {
                 break;
             }
+
+            open_slot += 1
+
 
         }
 
@@ -99,47 +93,49 @@ function find(items: {item: types.Item, count: number}[], inventory: {item: type
 
 }
 
-function find_spaces(items: any, inventory: any, station: any) {
+function find_spaces(items: {item: types.Item, location: types.Location, count: number}[], inventory: {item: types.Item, location: types.Location, count: number}[], station: number) {
     let result = [];
 
     let open_slots_list = open_slots(inventory)
 
-
-    let item: any, i: any
-    for ([i, item] of items.filter((x: any) => x.shulker_slot == null).entries()) {
+    for (let [i, item] of items.filter(x => x.location.shulker_slot == null).entries()) {
 
         result.push({
-            "item": item,
-            "from": { "chest_type": types.ChestType.Station, "chest": station, "slot": item.slot, "shulker_slot": null},
-            "to": { "chest_type": types.ChestType.Inventory, "chest": open_slots_list[i].chest, "slot": open_slots_list[i].slot, "shulker_slot": null},
+            "item": item.item,
+            "from": item.location,
+            "to": open_slots_list[i],
             "count": item.count
         })
         
-        items.filter((x: any) => (x.shulker_slot != null) && (x.slot == item.slot)).forEach((y: any) => {
+        // Find and move shulker items
+        for(let shulker_item of items.filter(x => ( x.location.shulker_slot != null ) && ( x.location.slot == item.location.slot ))) {
             result.push({
-                "item": y,
-                "from": { "chest_type": types.ChestType.Station, "chest": station, "slot": item.slot, "shulker_slot": y.shulker_slot},
-                "to": { "chest_type": types.ChestType.Inventory, "chest": open_slots_list[i].chest, "slot": open_slots_list[i].slot, "shulker_slot": y.shulker_slot},
-                "count": y.count
+                "item": shulker_item.item,
+                "from": shulker_item.location,
+                "to": { ...open_slots_list[i], "shulker_slot": shulker_item.location.shulker_slot },
+                "count": shulker_item.count
             })
-        })
+
+        }
     }
 
     return result
 
 }
 
-function open_slots(inventory: {item: types.Item, location: types.Location, count: number}[]): any {
+function open_slots(inventory: {item: types.Item, location: types.Location, count: number}[]): types.Location[] {
     const counts = actions.get_counts()
 
     let result: any = []
 
-    for(let i=0; i<counts["inventory"]; i++) {
-        for(let j=0; j<54; j++) {
-            if(!inventory.some((e: any) => (e.location.chest === i) && (e.location.slot === j))){
+    for(let chest=0; chest<counts["inventory"]; chest++) {
+        for(let slot=0; slot<54; slot++) {
+            if(!inventory.some(item => (item.location.chest === chest) && (item.location.slot === slot))){
                 result.push({
-                    "chest": i,
-                    "slot": j,
+                    "chest_type": types.ChestType.Inventory,
+                    chest,
+                    slot,
+                    "shulker_slot": null,
                 })
             }
         }
