@@ -47,7 +47,7 @@ Base action performer, listens for requests from inventory takes the following a
 
 Built with: javascript and mineflayer
 
-I've written more about it on my website [pucula.com/idk](pucula.com/idk)
+I've written more about it on my website [pucula.com/idk](https://pucula.com/idk)
 
 # Installing
 

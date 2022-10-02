@@ -3,7 +3,7 @@ const pool = new Pool({
     host: "localhost",
     user: "mc-inventory",
     database: "mc-inventory",
-    password: "pineapple",
+    password: "*",
     port: 5432
 })
 
