@@ -2,10 +2,10 @@
 <div align="center">
 
 <img src="https://raw.githubusercontent.com/lazydancer/idk/0979dcfd4745d6a4848bcd430e977de8bd648d6f/img/logo.svg" width="80"/>
-
+<br />
 idk is a minecraft inventory bot. 
 
-It deposits and withdraws items from a storage area of chests. All the items are shown on a website and you can control the bot from there. No redstone required!
+Deposit and withdraw items from a storage area of chests. All the items are shown on a website and you can control the bot from there. No redstone required!
 
 [About](#about) •
 [Installation](#installation) 
@@ -14,7 +14,7 @@ It deposits and withdraws items from a storage area of chests. All the items are
 
 ## About
 
-idk is divided into 3 parts:
+Divided into 3 parts: website, inventory / database and minecraft player / storage
 
 ### Website
 
