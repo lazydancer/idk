@@ -1,18 +1,27 @@
 
-# idk
+<div align="center">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 9 5" shape-rendering="crispEdges"><path stroke="#c40424" d="M0 0h1m3 0h1m1 0h1M4 1h1m1 0h1M0 2h1m2 0h2m1 0h1m1 0h1M0 3h1m1 0h1m1 0h1m1 0h2M0 4h1m1 0h3m1 0h1m1 0h1"/></svg>
 
-idk is a minecraft inventory bot. It deposits items into a storage area of chests. You can see all your items from a website and withdraw from there. No redstone required!
+idk is a minecraft inventory bot. 
 
-This is a project for me to try out a few things. 
+It deposits and withdraws items from a storage area of chests. All the items are shown on a website and you can control the bot from there. No redstone required!
+
+[About](#about) •
+[Installation](#installation) •
+
+</div>
 
 ## About
 
-It is divided into 3 parts:
+idk is divided into 3 parts:
 
 ### Website
+
+![Website](img/screenshot-rocks (1).png)
+
 This displays items availbe in your inventory and have the ability to place items into a cart to withdraw them. In addition, also allows the start the depositing process 
 
-Built with Svelte and tailwind.css,
+Built with svelte and tailwind.css,
 
 ### Inventory / Database
 A simple api to take requests from frontend:
@@ -24,7 +33,10 @@ Model of the inventory system and a majority of the logic. Takes the inputs abov
 
 Built with: typescript and postgres 
 
-### Minecraft Player
+### Minecraft Player / Storage
+
+![Storage](img/Screenshot from 2022-10-02 09-06-44.png)
+
 Base action performer, listens for requests from inventory takes the following actions:
 - move (moves the players position by a breath first pathing)
 - open 
@@ -34,13 +46,15 @@ Base action performer, listens for requests from inventory takes the following a
 
 Built with: javascript and mineflayer
 
+I've written more about it on my website (pucula.com)(pucula.com)
+
 # Installing
 
-Since this is a personal project, I haven't spend much time to help with installation but you'll need
+Since this is a personal project, sorry I haven't spend much time to help with installation process but you'll need:
 - A minecraft account, user/pass are stored as envirnoment variable
-- Running a minecraft server with the chests set up and constants mapped
-- Postgres with an items database and tables setup. 
-- 
+- Running a minecraft server with the chests set up.
+- Postgres with an items database and tables. 
+
 
 # Log
 
