@@ -6,3 +6,4 @@ build/
 .env
 venv/
 dist/
+front/public/static
