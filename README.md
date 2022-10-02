@@ -1,7 +1,7 @@
 
 <div align="center">
 
-![Logo](./img/logo.png)
+![Logo](https://raw.githubusercontent.com/lazydancer/idk/0979dcfd4745d6a4848bcd430e977de8bd648d6f/img/logo.svg)
 
 idk is a minecraft inventory bot. 
 
@@ -18,7 +18,7 @@ idk is divided into 3 parts:
 
 ### Website
 
-![Website](./img/screenshot-rocks (1).png)
+![Website](https://raw.githubusercontent.com/lazydancer/idk/main/img/screenshot-rocks%20(1).png)
 
 This displays items availbe in your inventory and have the ability to place items into a cart to withdraw them. In addition, also allows the start the depositing process 
 
@@ -36,7 +36,7 @@ Built with: typescript and postgres
 
 ### Minecraft Player / Storage
 
-![Storage](./img/Screenshot from 2022-10-02 09-06-44.png)
+![Storage](https://github.com/lazydancer/idk/blob/main/img/Screenshot%20from%202022-10-02%2009-06-44.png?raw=true)
 
 Base action performer, listens for requests from inventory takes the following actions:
 - move (moves the players position by a breath first pathing)
