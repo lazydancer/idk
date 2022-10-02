@@ -1,7 +1,7 @@
-
+<br/>
 <div align="center">
 
-![Logo](https://raw.githubusercontent.com/lazydancer/idk/0979dcfd4745d6a4848bcd430e977de8bd648d6f/img/logo.svg)
+![Logo](https://raw.githubusercontent.com/lazydancer/idk/0979dcfd4745d6a4848bcd430e977de8bd648d6f/img/logo.svg | width=80)
 
 idk is a minecraft inventory bot. 
 
