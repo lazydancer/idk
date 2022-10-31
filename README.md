@@ -5,7 +5,7 @@
 
 idk is a minecraft inventory bot. 
 
-Deposit and withdraw items from a storage area of chests. All the items are shown on a website and you can control the bot from there. No redstone required!
+Deposit and withdraw items from storage. All the items are shown on a website and you can control the bot from there. No redstone required!
 
 [About](#about) •
 [Installation](#installation) 
@@ -20,7 +20,7 @@ Divided into 3 parts: website, inventory / database and minecraft player / stora
 
 ![Website](https://raw.githubusercontent.com/lazydancer/idk/main/img/screenshot-rocks%20(1).png)
 
-This displays items availbe in your inventory and have the ability to place items into a cart to withdraw them. In addition, also allows the start the depositing process 
+This displays and controls the items available in your inventory. Withdraw and deposit items from here 
 
 Built with svelte and tailwind.css,
 
@@ -30,7 +30,7 @@ A simple api to take requests from frontend:
 - withdraw
 - deposit
 
-Model of the inventory system and a majority of the logic. Takes the inputs above and converts them into actions to be run by the player. After recieiving confirmation of task, upates database
+Model of the inventory system and a majority of the logic. Takes the inputs above and converts them into actions to be run by the player. Task completion updates database
 
 Built with: typescript and postgres 
 
@@ -52,7 +52,7 @@ I've written more about it on my website [pucula.com/idk](https://pucula.com/idk
 # Installing
 
 Since this is a personal project, sorry I haven't spend much time to help with installation process but you'll need:
-- A minecraft account, user/pass are stored as envirnoment variable
+- A minecraft account, user/pass are stored as environment variable
 - Running a minecraft server with the chests set up.
 - Postgres with an items database and tables. 
 
