@@ -3,7 +3,7 @@ const pool = new Pool({
     host: "localhost",
     user: "mc-inventory",
     database: "mc-inventory",
-    password: "*",
+    password: process.env['DB_PASS'],
     port: 5432
 })
 

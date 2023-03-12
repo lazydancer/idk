@@ -4,20 +4,19 @@ import * as types from './types'
 export async function move_items(requests: {item: types.Item, from: types.Location, to: types.Location, count: number}[]) {
     requests = structuredClone(requests)
 
-    // Each of the following actions removes the resecptive actions
-    // filter out full shulker moves (don't need to move individual items in the shulker)
-    requests = filter_internal_shulker_moves(requests)
+    requests = remove_non_moves(requests)
 
     requests = await move_items_out_of_shulkers(requests)
     requests = await move_items_into_shulkers(requests)
 
     await move_normal(requests)
 
+    back_to_ready_postion()
 
 }
 
 
-function filter_internal_shulker_moves(requests: {item: types.Item, from: types.Location, to: types.Location, count: number}[]) {
+function remove_non_moves(requests: {item: types.Item, from: types.Location, to: types.Location, count: number}[]) {
     const boxes = requests.filter( (r: any) => r.item.name.endsWith("shulker_box"));
 
     let result: any[] = []
@@ -53,18 +52,31 @@ async function move_items_out_of_shulkers(requests: {item: types.Item, from: typ
     const shulker_inventory_start = 27
     const double_chest_inventory_start = 54
 
-    const to_move = requests.filter( (r: any) => (r.from.shulker_slot != null) && (r.to.shulker_slot == null))
+    const to_move = requests.filter( (r: any) => (r.from.shulker_slot != null) && (r.to.shulker_slot == null))  
 
-    for (const move of to_move) {
-        await global.player.open_shulker(move.from.chest_type, move.from.chest, move.from.slot)        
-        await clicks_move_item(move.from.shulker_slot!, shulker_inventory_start, move.count)
+    // group by shulker
+    const grouped = to_move.reduce((r: any, a: any) => {
+        r['chesttype' + a.from.chest_type + 'chest' + a.from.chest + 'slot' + a.from.slot] = [...r['chesttype' + a.from.chest_type + 'chest' + a.from.chest + 'slot' + a.from.slot] || [], a];
+        return r;
+    }, {});
+
+    // for each shulker move items
+    for (const key in grouped) {
+        const first_move = grouped[key][0]
+
+        await global.player.open_shulker(first_move.from.chest_type, first_move.from.chest, first_move.from.slot)
+        for( let [i, move] of grouped[key].entries() ) {
+            await clicks_move_item(move.from.shulker_slot!, shulker_inventory_start + i, move.count)
+        }
         await global.player.close_shulker()
 
-        await global.player.open(move.to.chest_type, move.to.chest)
-        await clicks_move_item(double_chest_inventory_start, move.to.slot!, move.count)
+        await global.player.open(first_move.to.chest_type, first_move.to.chest)
+        for( let [i, move] of grouped[key].entries() ) {
+            await clicks_move_item(double_chest_inventory_start + i, move.to.slot!, move.count)
+        }
         await global.player.close()
-    }
 
+    }
 
     for (const i of to_move.map((m: any) => requests.indexOf(m)).sort().reverse()) {
         requests.splice(i, 1);
@@ -178,6 +190,7 @@ async function move_normal(requests: {item: types.Item, from: types.Location, to
         }
 
     }
+
 }
 
 export async function take_inventory() {
@@ -190,9 +203,10 @@ export async function take_inventory() {
         inv = inv.map((x: any) => ({...x, chest: chest, shulker_slot: null}))
         result.push(inv) 
 
+
         // Open each shulker to record internals
-        for (const box of inv.filter( (x: any) => x.name.endsWith("shulker_box"))) {
-            let shulker_contents = await global.player.open_shulker(types.ChestType.Inventory, chest, box.slot)
+        for (const box of inv.filter( (x: any) => x.item.name.endsWith("shulker_box"))) {
+            let shulker_contents = await global.player.open_shulker(types.ChestType.Inventory, chest, box.location.slot)
             await global.player.close_shulker()
 
             shulker_contents.forEach((x: any) => {
@@ -204,10 +218,15 @@ export async function take_inventory() {
         }
     }
 
+    back_to_ready_postion()
+
     return result.flat()
 
 }
 
+export async function back_to_ready_postion() {
+    await global.player.move_to_ready()
+}
 
 export async function get_chest_contents(station: number) {
     let r = await global.player.open(types.ChestType.Station, station)
@@ -228,9 +247,14 @@ export function get_counts() {
 async function clicks_move_item(from_slot: number, to_slot: number, count: number) {
     await global.player.lclick(from_slot)
 
-    for (let _a = 0; _a < count; _a += 1) {
-        await global.player.rclick(to_slot)
+    if (count == 64) {
+        await global.player.lclick(to_slot)
+    } else {
+        for (let _a = 0; _a < count; _a += 1) {
+            await global.player.rclick(to_slot)
+        }
     }
+    
     await global.player.lclick(from_slot)
 }
 

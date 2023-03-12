@@ -7,6 +7,8 @@ export async function inventory() {
     const actual = await actions.take_inventory()
     const expected = await get_items();
 
+    // need to compare actual versus expected
+    // writing directly tot he database for now
     insert(actual);
 
 }
@@ -22,6 +24,8 @@ export async function withdraw(items: {item: types.Item, count: number}[], stati
 }
 
 export async function deposit(station: number) {
+    station = 0 // override station number for testing
+
     let items = await actions.get_chest_contents(station)
 
     let shulker_items = await learn_shulker_contents(items)
@@ -67,6 +71,19 @@ function find(items: {item: types.Item, count: number}[], inventory: {item: type
         for (let inv_item of inventory) {
             if ( !matches(item.item, inv_item.item) ){
                 continue;
+            }
+
+            // If we have more than we need, just take what we need
+            if (inv_item.count > count) {
+                result.push({
+                    "item": inv_item.item,
+                    "from": inv_item.location,
+                    "to": { "chest_type": types.ChestType.Station, "chest": station, "slot": open_slot, "shulker_slot": null},
+                    "count": count,
+                })
+
+                open_slot += 1
+                break;
             }
 
             result.push({

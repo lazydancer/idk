@@ -27,17 +27,21 @@ async function main() {
 
   app.post('/api/order', async function (req: Request, res: Response) {
     console.log(req.body)
-    inventory.withdraw(req.body, 0)
+    await inventory.withdraw(req.body, 0)
   })
 
   app.post('/api/deposit', async function (req: Request, res: Response) {
     console.log(req.body)
-    inventory.deposit(req.body['station'])
+    await inventory.deposit(req.body['station'])
   })
 
-  // Take Inventory
-  // await new Promise(r => setTimeout(r, 7000));
-  // await inventory.inventory()
+
+  if (process.argv.length > 2) {
+    if (process.argv[2] == "inventory") {
+      await new Promise(r => setTimeout(r, 7000));
+      await inventory.inventory()
+    }
+  } 
 
   app.listen(8000)
 

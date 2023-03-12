@@ -8,10 +8,9 @@ import * as types from './types'
 
 let BUILD = {
 	location: [15, 83, 130],
-	width: 3,
-	depth: 7,
+	width: 4,
+	depth: 12,
 	map: [[0,0]],
-	// height: 6,
 	// facing: [0,0,1],
 }
 
@@ -97,7 +96,6 @@ export class Player {
 		this.open_container = null
 		return "done";
 	}
-
 
 
 	async open_shulker(chest_type: any, chest: any, slot: any): Promise<any> {
@@ -204,6 +202,12 @@ export class Player {
 		this.shulker_location = null
 
 
+	}
+
+	async move_to_ready() {
+		const x = BUILD['location'][0] + 5
+		const z = BUILD['location'][2] - 2
+		await this.move([x, z])
 	}
 
 	private async move(loc: any) {

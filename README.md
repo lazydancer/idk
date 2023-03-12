@@ -51,8 +51,23 @@ I've written more about it on my website [pucula.com/idk](https://pucula.com/idk
 
 # Installing
 
-Since this is a personal project, sorry I haven't spend much time to help with installation process but you'll need:
-- A minecraft account, user/pass are stored as environment variable
-- Running a minecraft server with the chests set up.
-- Postgres with an items database and tables. 
+Since this is a personal project, sorry I haven't spend much time to help with installation process. You'll need:
 
+- Local minecraft server running 1.19.3
+- A minecraft account, user/pass are stored as environment variable
+- Running a minecraft server with the chests set up. (config in player.ts)
+- Postgres with a table with the follwing schema. (config in db.ts)
+        metadata - int4
+        nbt - jsonb
+        name - varchar
+        display_name - varchar
+        stack_size - int4
+        slot - int4
+        count - int4
+        chest - int4
+        shulker_slot - int4
+
+To run,
+Start Website: cd front, npm install, npm run dev
+cd ..
+Start Bot: cd back, npm install, npm start
