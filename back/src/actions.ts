@@ -4,7 +4,7 @@ import * as types from './types'
 export async function move_items(requests: {item: types.Item, from: types.Location, to: types.Location, count: number}[]) {
     requests = structuredClone(requests)
 
-    requests = remove_non_moves(requests)
+    requests = remove_moves_inside_shulker(requests)
 
     requests = await move_items_out_of_shulkers(requests)
     requests = await move_items_into_shulkers(requests)
@@ -16,36 +16,30 @@ export async function move_items(requests: {item: types.Item, from: types.Locati
 }
 
 
-function remove_non_moves(requests: {item: types.Item, from: types.Location, to: types.Location, count: number}[]) {
-    const boxes = requests.filter( (r: any) => r.item.name.endsWith("shulker_box"));
+function remove_moves_inside_shulker(requests: {item: types.Item, from: types.Location, to: types.Location, count: number}[]) {
+    const shulkers = requests.filter( (r: any) => r.item.name.endsWith("shulker_box"));
 
-    let result: any[] = []
+    let indexes_to_remove: any[] = []
 
-    for (const c of boxes) {
-        result.push(requests.filter( (r: any) => 
-            // If is in a shulker 
-                (r.from.shulker_slot != null)
-            // If is moving with the shukler
-            && (r.from.chest_type == c.from.chest_type)
-            && (r.from.chest == c.from.chest)
-            && (r.from.slot == c.from.slot)
-            && (r.to.chest_type == c.to.chest_type)
-            && (r.to.chest == c.to.chest)
-            && (r.to.slot == c.to.slot)
-            // If stays in the same slot
-            && (r.from.shulker_slot == r.to.shulker_slot)
-        ).map( (x:any) => requests.indexOf(x)).flat())
+    for (const shulker of shulkers) {
+        indexes_to_remove.push(requests.filter( (request: any) => 
+            (request.from.shulker_slot != null)
+            // from matches
+            && (request.from.chest_type == shulker.from.chest_type)
+            && (request.from.chest == shulker.from.chest)
+            && (request.from.slot == shulker.from.slot)
+            // to matches
+            && (request.to.chest_type == shulker.to.chest_type)
+            && (request.to.chest == shulker.to.chest)
+            && (request.to.slot == shulker.to.slot)
+
+            && (request.from.shulker_slot == request.to.shulker_slot)
+        ).map( (r:any) => requests.indexOf(r)).flat())
     }
 
-    result = result.flat();
+    indexes_to_remove = indexes_to_remove.flat();
 
-    // Remove self
-    for (const i of result.sort().reverse()) {
-        requests.splice(i, 1);
-    }
-
-    return requests
-
+    return requests.filter((_, i) => !indexes_to_remove.includes(i))
 }
 
 async function move_items_out_of_shulkers(requests: {item: types.Item, from: types.Location, to: types.Location, count: number}[]) {
@@ -257,29 +251,3 @@ async function clicks_move_item(from_slot: number, to_slot: number, count: numbe
     
     await global.player.lclick(from_slot)
 }
-
-// async function test_request() {
-
-//     await new Promise(r => setTimeout(r, 7000))
-
-//     const requests = [
-//         {
-//             "item": {"name": "dirt"},
-//             "from": {
-//                 "chest_type": types.ChestType.Station,
-//                 "chest": 0,
-//                 "slot": 0,
-//                 "shulker_slot": null,
-//             },
-//             "to": {
-//                 "chest_type": types.ChestType.Station,
-//                 "chest": 0,
-//                 "slot": 1,
-//                 "shulker_slot": 0,
-//             },
-//             "count": 1,
-//         }
-//     ]
-//     move_items(requests)
-// }
-// test_request()

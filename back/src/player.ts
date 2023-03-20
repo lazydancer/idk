@@ -129,8 +129,7 @@ export class Player {
 			}
 
 		if(open_place.length == 0) {
-			console.log("couldn't find a place")
-			throw console.error();
+			throw console.error("couldn't find a place");
 		}
 
 		await new Promise(r => setTimeout(r, 1000));
@@ -176,8 +175,6 @@ export class Player {
 		const hand_slot = 81
 
 		let [chest, chest_type, slot, window, block] = this.shulker_location 
-
-		console.log(window)
 
 		// Close shulker and pick up
 		await this.bot.closeWindow(window)
@@ -295,14 +292,10 @@ export class Player {
 		}
 
 		if (!includesArray(BUILD["map"], player_position)) {
-
-			console.log(BUILD["map"], player_position)
 			throw Error("player not on map")
 		}
 
 		if (!includesArray(BUILD["map"], [x,z])) {
-
-			console.log(BUILD["map"], [x, z])
 			throw Error("destination not on map")
 		}
 
@@ -338,9 +331,6 @@ export class Player {
 				},
 				count: o.count,
 		}));
-
-		console.log(r );
-
 		return r
 
 	}

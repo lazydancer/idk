@@ -79,8 +79,6 @@ export async function apply_moves(moves: {item: types.Item, from: types.Location
 
         // Move items from        
         if ( move.from.chest_type == types.ChestType.Inventory ) {
-            console.log("move items from", move)
-
             if (move.from.shulker_slot == null) {
                 await pool.query("UPDATE locations SET count = count - $1 WHERE slot=$2 and chest=$3 and shulker_slot is null",
                 [move.count, move.from.slot, move.from.chest])

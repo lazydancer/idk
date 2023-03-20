@@ -26,12 +26,10 @@ async function main() {
   })
 
   app.post('/api/order', async function (req: Request, res: Response) {
-    console.log(req.body)
     await inventory.withdraw(req.body, 0)
   })
 
   app.post('/api/deposit', async function (req: Request, res: Response) {
-    console.log(req.body)
     await inventory.deposit(req.body['station'])
   })
 
