@@ -1,13 +1,11 @@
 <script>
   import List from './List.svelte';
+  import Item from './Item.svelte';
 
   import { onMount } from 'svelte';
 
   let items = [];
-
-  let group = "All"
-  let groups = ["All", "Natural", "Wood", "Mob Drops", "Stone", "Colours", "Combat", "Minerals", "Tools", "Mining", "Brewing", "Nether", "End", "Redstone", "Enchanting", "Server Specific"];
-
+  let selectedItem = null;
 
   let displayOrder = false;
 
@@ -21,14 +19,14 @@
     items.forEach((item, i) => {item.key = i + 1;});
 
     visibleItems = items;
+   
 
   });
 
-  function changeGroup(set_group) {
-    group = set_group["g"]
-    visibleItems = (group !== "All") ?  items.filter(item => item.group == group) : items
-    displayOrder = false
-  }
+  function handleOverlayClose() {
+      console.log("handleOverlayClose")
+      selectedItem = null;
+    }
 
   function setOrder() {
     displayOrder = true
@@ -67,8 +65,6 @@
     let order_item_list = items.filter(it => it.orderCount > 0).map(({count, key, orderTempTextBox, ...keepAttrs}) => keepAttrs)
     order_item_list = order_item_list.map(({orderCount, ...rest}) => ({...rest, count: orderCount}) )
     
-    console.log(order_item_list);
-
     const res = await fetch(`http://localhost:8000/api/order`, {
       method: 'POST',
       body: JSON.stringify(order_item_list),
@@ -99,9 +95,9 @@
 	<html lang="en" />
 </svelte:head>
 
-<header class="max-w-none mx-auto px-12 py-4 border-b border-gray-300 bg-white fixed top-0 w-full">
+<header class="max-w-none mx-auto px-12 py-4 border-b border-gray-200 bg-white fixed top-0 w-full">
   <div class="flex flex-row flex-nowrap">
-    <h1 on:click={() => changeGroup({"g": "All"})} class="flex-1 text-left text-4xl font-extrabold text-red-700 cursor-pointer mr-20 p-1 w-20 flex-none">
+    <h1 class="flex-1 text-left text-4xl font-extrabold text-red-700 cursor-pointer mr-20 p-1 w-20 flex-none">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 9 5" shape-rendering="crispEdges"><path stroke="#c40424" d="M0 0h1m3 0h1m1 0h1M4 1h1m1 0h1M0 2h1m2 0h2m1 0h1m1 0h1M0 3h1m1 0h1m1 0h1m1 0h2M0 4h1m1 0h3m1 0h1m1 0h1"/></svg>
     
     </h1>
@@ -115,70 +111,26 @@
           <input type="text" id="simple-search" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search" required>
       </div>
     </form>
-
-
-    <div class="mx-5 mt-1 flex-1">
-      <button on:click={()=>setOrder()} class="ml-2 px-4 py-2 border border-none shadow-sm text-sm  text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
-      focus:ring-offset-2 focus:ring-red-600 float-right">Withdraw</button>
-      <button on:click={()=>deposit()} class="ml-2 px-4 py-2 border border-none shadow-sm text-sm  text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 
-        focus:ring-offset-2 focus:ring-red-600 float-right">Deposit</button>
-    </div>
   </div>
 </header>
 
 <main class="flex flex-row items-start px-12 py-6 max-w-none mx-auto mt-20">
-  <ul class="text-gray-900 text-sm visited:text-gray-900 pr-10 h-screen fixed top-30 w-40">
-    <div class="h-3"></div>
-    {#each groups as g}
-      <li>
-        {#if g == group}
-          <p on:click={() => changeGroup({g})} class="block pb-3 cursor-pointer font-bold text-sm">{g}</p>
-        {:else}
-          <p on:click={() => changeGroup({g})} class="block pb-3 cursor-pointer text-sm">{g}</p>
-        {/if}
-      </li>
-    {/each}
 
-  </ul>
-
-
-  <div class="flex-1 pl-6 ml-36">
-
-    <List items={visibleItems} on:order={add_to_order}/>
-
-
-    {#if displayOrder}
-      {#if !ordered}
-        <div class="flex flex-row pt-12">
-          <input 
-            type="text"
-            placeholder="Username"
-            class="focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 mr-4 pl-4"/>
-
-            <button on:click={()=>submitOrder()} class="px-4 py-2 border border-transparent shadow-sm text-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-600">
-              Withdraw
-            </button>
-        </div>
-      {:else} 
-        <div class="flex flex-row pt-12">
-          <input 
-            type="text"
-            placeholder="Username"
-            class="focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 mr-4 pl-4"/>
-
-            <button class="px-4 py-2 border border-transparent shadow-sm text-sm text-white bg-red-700" disabled>
-              Ordered
-            </button>
-        </div>
-          <p class="float-right text-l font-bold py-4 px-2">{ordered_message}!</p>
-      {/if}
+  {#if selectedItem}
+    <Item item={selectedItem} close={handleOverlayClose} />
   {/if}
-
-
-</div>
-
-
-
+  <div class="w-1/2 px-2">
+    <h3 class="text-gray-900 dark:text-gray-100 pb-4">Inventory</h3>
+    <div class="h-screen max-h-full overflow-y-scroll">
+      <List items={visibleItems} onItemClick={(clickedItem) => selectedItem = clickedItem}/>
+    </div>
+  </div>
+  <!-- <div class="w-1/2 px-2">
+    <h3 class="text-gray-900 dark:text-gray-100 pb-4">Station 00</h3>
+    <div class="h-screen max-h-full overflow-y-scroll">
+      <List items={visibleItems} onItemClick={(clickedItem) => selectedItem = clickedItem}/>
+    </div>
+  </div> -->
 </main>
 
 
@@ -190,6 +142,7 @@
 
   body {
     padding: 0;
+    height: 100%;
   }
 
   :global(.accordion-item) {
