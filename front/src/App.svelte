@@ -3,13 +3,14 @@
   import Item from './Item.svelte';
 
   import { onMount } from 'svelte';
+  import { fade } from 'svelte/transition';
+  const duration = 200; // duration of the fade effect in milliseconds
 
   let items = [];
   let selectedItem = null;
 
-  let displayOrder = false;
-
   let visibleItems = [];
+  let order_item_list = items.filter(item => item.orderCount > 0);
 
   onMount(async () => {
     const res = await fetch(`http://localhost:8000/api/list`);
@@ -25,15 +26,9 @@
 
   function handleOverlayClose() {
       console.log("handleOverlayClose")
+      order_item_list = items.filter(item => item.orderCount > 0)
       selectedItem = null;
-    }
-
-  function setOrder() {
-    displayOrder = true
-    visibleItems = items.filter(item => item.orderCount > 0)
-    group = null;
   }
-
 
   function add_to_order(event) {
     const key = event.detail.key
@@ -95,43 +90,46 @@
 	<html lang="en" />
 </svelte:head>
 
-<header class="max-w-none mx-auto px-12 py-4 border-b border-gray-200 bg-white fixed top-0 w-full">
-  <div class="flex flex-row flex-nowrap">
-    <h1 class="flex-1 text-left text-4xl font-extrabold text-red-700 cursor-pointer mr-20 p-1 w-20 flex-none">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 9 5" shape-rendering="crispEdges"><path stroke="#c40424" d="M0 0h1m3 0h1m1 0h1M4 1h1m1 0h1M0 2h1m2 0h2m1 0h1m1 0h1M0 3h1m1 0h1m1 0h1m1 0h2M0 4h1m1 0h3m1 0h1m1 0h1"/></svg>
-    
-    </h1>
-    
-    <form class="items-center flex-1">   
-      <label for="simple-search" class="sr-only">Search</label>
-      <div class="relative w-full">
-          <div class="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none">
-              <svg aria-hidden="true" class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path></svg>
-          </div>
-          <input type="text" id="simple-search" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search" required>
+  <header class="max-w-none mx-auto px-12 py-4 border-b border-gray-200 bg-white w-full">
+    <div class="flex flex-row flex-nowrap">
+      <h1 class="flex-1 text-left text-4xl font-extrabold text-red-700 cursor-pointer mr-20 p-1 w-20 flex-none">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 9 5" shape-rendering="crispEdges"><path stroke="#c40424" d="M0 0h1m3 0h1m1 0h1M4 1h1m1 0h1M0 2h1m2 0h2m1 0h1m1 0h1M0 3h1m1 0h1m1 0h1m1 0h2M0 4h1m1 0h3m1 0h1m1 0h1"/></svg>
+      
+      </h1>
+      
+      <form class="items-center flex-1">   
+        <label for="simple-search" class="sr-only">Search</label>
+        <div class="relative w-full">
+            <div class="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none">
+                <svg aria-hidden="true" class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path></svg>
+            </div>
+            <input type="text" id="simple-search" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search" required>
+        </div>
+      </form>
+    </div>
+  </header>
+
+  <main class="flex flex-row items-start px-12 pt-6 max-w-none mx-auto">
+
+    {#if selectedItem}
+    <div transition:fade={{ duration }}>
+      <Item item={selectedItem} close={handleOverlayClose} />
+    </div>
+    {/if}
+
+    <div class="w-1/2 px-2">
+      <h3 class="text-gray-900 dark:text-gray-100 pb-4">Inventory</h3>
+      <div class="overflow-y-scroll pr-2" style="height: 85vh">
+        <List items={visibleItems} onItemClick={(clickedItem) => selectedItem = clickedItem}/>
       </div>
-    </form>
-  </div>
-</header>
-
-<main class="flex flex-row items-start px-12 py-6 max-w-none mx-auto mt-20">
-
-  {#if selectedItem}
-    <Item item={selectedItem} close={handleOverlayClose} />
-  {/if}
-  <div class="w-1/2 px-2">
-    <h3 class="text-gray-900 dark:text-gray-100 pb-4">Inventory</h3>
-    <div class="h-screen max-h-full overflow-y-scroll">
-      <List items={visibleItems} onItemClick={(clickedItem) => selectedItem = clickedItem}/>
     </div>
-  </div>
-  <!-- <div class="w-1/2 px-2">
-    <h3 class="text-gray-900 dark:text-gray-100 pb-4">Station 00</h3>
-    <div class="h-screen max-h-full overflow-y-scroll">
-      <List items={visibleItems} onItemClick={(clickedItem) => selectedItem = clickedItem}/>
+    <div class="w-1/2 px-2">
+      <h3 class="text-gray-900 dark:text-gray-100 pb-4">Station 00</h3>
+      <div class="overflow-y-scroll pr-2" style="height: 85vh">
+        <List items={order_item_list} onItemClick={(clickedItem) => selectedItem = clickedItem} countProp="orderCount"/>
+      </div>
     </div>
-  </div> -->
-</main>
+  </main>
 
 
 <style global lang="postcss">

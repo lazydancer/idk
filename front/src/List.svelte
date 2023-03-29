@@ -3,6 +3,7 @@
 
   export let items;
   export let onItemClick;
+  export let countProp = 'count';
   
   function handleClick(item) {
       onItemClick(item);
@@ -23,7 +24,6 @@
         </p>
         {/if}
       </div>
-      <p class="flex-1 text-sm pr-2 pt-2 text-right">{v_item.count}</p>                         
-
+      <p class="flex-1 text-sm pr-2 pt-2 text-right">{v_item[countProp]}</p>                         
   </div>
 {/each}

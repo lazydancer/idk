@@ -18,15 +18,24 @@
     labels: itemData.map(v => v.date),
     datasets: [
       {
-        label: "Volume",
         data: itemData.map(v => v.volume),
-        fill: false,
-        borderColor: "#2196f3",
-        tension: 0.1
+        borderColor: "#c53030",
       }
-    ]
+    ],
   };
 
+  const options = {
+    plugins: {
+      legend: {
+        display: false
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true
+      }
+    }
+  }
 </script>
 
 <div class="fixed z-50 inset-0 overflow-y-auto">
@@ -45,6 +54,7 @@
         </div>
         <div class="px-4 py-5 sm:p-6">
         <img src="static/icons/{item.item.name}.png" style="width:64px; height:64px;" alt={item.item.name} />
+        <button on:click={item.orderCount += 1}>+1</button>
         <p class="text-sm text-gray-500 pt-2">name: {item.item.name}</p>
         {#if item.item.metadata != 0}
             <p class="text-sm text-gray-500 pt-2">metadata: {item.item.metadata}</p>
@@ -54,7 +64,8 @@
             <pre class="whitespace-pre-wrap text-gray text-sm pt-2">nbt:{JSON.stringify(item.item.nbt, null, 2)}</pre>
         {/if}
         <p class="text-sm text-gray-500 pt-2">count: {item.count}</p>
-        <Line {data} />
+        <p class="text-sm text-gray-500 pt-2">order: {item.orderCount}</p>
+        <Line {data} options={options}/>
         </div>
     </div>
     </div>
