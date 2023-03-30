@@ -9,14 +9,20 @@ const pool = new Pool({
 
 import * as types from './types'
 
+
+function init_tables() {
+    pool.query("CREATE TABLE IF NOT EXISTS items (id SERIAL PRIMARY KEY, metadata INTEGER, name TEXT, display_name TEXT, stack_size INTEGER, nbt JSONB)")
+    pool.query("CREATE TABLE IF NOT EXISTS locations (item_id INTEGER, slot INTEGER, count INTEGER, chest INTEGER, shulker_slot INTEGER, FOREIGN KEY (item_id) REFERENCES items(id))")
+}
+
 export async function get_items(): Promise<{item: types.Item, location: types.Location, count: number}[]> {
     try {
-        const request = await pool.query("SELECT * FROM locations")
+        const request = await pool.query("SELECT * FROM locations JOIN items ON locations.item_id = items.id")
 
         return request["rows"].map( x => (
             {
                 item: {
-                    id: 0, // placeholder, will come from database (x.id)
+                    id: x.item_id,
                     name: x.name,
                     metadata: x.metadata,
                     nbt: x.nbt,
@@ -43,12 +49,15 @@ export async function get_items(): Promise<{item: types.Item, location: types.Lo
 // Group items for total counts
 export async function get_summary(): Promise<{item: types.Item, count: number}[]> {
     try {
-        const request = await pool.query("SELECT metadata, nbt, name, MAX(display_name) as display_name, MAX(stack_size) as stack_size, SUM(count) as count FROM locations GROUP BY metadata, nbt, name")
+        const request = await pool.query(`SELECT metadata, nbt, name, MAX(display_name) as display_name, MAX(stack_size) as stack_size, SUM(count) as count 
+                                          FROM locations 
+                                          JOIN items ON locations.item_id = items.id 
+                                          GROUP BY metadata, nbt, name`)
 
         return request["rows"].filter( (x: any) => !x.name.endsWith("shulker_box")).map( x => (
             {
                 item: {
-                    id: 0, // placeholder, will come from database (x.id)
+                    id: x.item_id,
                     name: x.name,
                     metadata: x.metadata,
                     nbt: x.nbt,
@@ -66,10 +75,22 @@ export async function get_summary(): Promise<{item: types.Item, count: number}[]
 
 export async function insert(items: {item: types.Item, location: types.Location, count: number}[]): Promise<any> {
 
+    // Get item ids and insert if not exists
     for (const item of items) {
-        await pool.query("INSERT INTO locations (metadata, name, display_name, stack_size, slot, count, nbt, chest, shulker_slot) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-        [item.item.metadata, item.item.name, item.item.display_name, item.item.stack_size, item.location.slot, item.count, item.item.nbt, item.location.chest, item.location.shulker_slot])
+        const exists = await pool.query("SELECT * FROM items WHERE name=$1 and metadata=$2 and nbt=$3", [item.item.name, item.item.metadata, item.item.nbt])
+        if (exists.rowCount == 0) {
+            await pool.query("INSERT INTO items (metadata, name, display_name, stack_size, nbt) VALUES ($1, $2, $3, $4, $5)", [item.item.metadata, item.item.name, item.item.display_name, item.item.stack_size, item.item.nbt])
+        }
     }
+
+    // add locations
+    for (const item of items) {
+        const exists = await pool.query("SELECT * FROM items WHERE name=$1 and metadata=$2 and nbt=$3", [item.item.name, item.item.metadata, item.item.nbt])
+        if (exists.rowCount > 0) {
+            await pool.query("INSERT INTO locations (item_id, slot, count, chest, shulker_slot) VALUES ($1, $2, $3, $4, $5)", [exists.rows[0].id, item.location.slot, item.count, item.location.chest, item.location.shulker_slot])
+        }
+    }
+
 
 }
 
@@ -106,7 +127,7 @@ export async function apply_moves(moves: {item: types.Item, from: types.Location
                     await pool.query("UPDATE locations SET count = count + $1 WHERE slot=$2 and chest=$3 and shulker_slot=$4", [move.count, move.to.slot, move.to.chest, move.to.shulker_slot])        
                 }
             } else {
-                await pool.query("INSERT INTO locations (metadata, name, display_name, stack_size, slot, count, nbt, chest, shulker_slot) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", [move.item.metadata, move.item.name, move.item.display_name, move.item.stack_size, move.to.slot, move.count, move.item.nbt, move.to.chest, move.to.shulker_slot])
+                await pool.query("INSERT INTO locations (item_id, slot, count, chest, shulker_slot) VALUES ($1, $2, $3, $4, $5)", [move.item.id, move.to.slot, move.count, move.to.chest, move.to.shulker_slot])
 
             }
 
