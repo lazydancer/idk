@@ -13,9 +13,10 @@ import * as types from './types'
 function init_tables() {
     pool.query("CREATE TABLE IF NOT EXISTS items (id SERIAL PRIMARY KEY, metadata INTEGER, name TEXT, display_name TEXT, stack_size INTEGER, nbt JSONB)")
     pool.query("CREATE TABLE IF NOT EXISTS locations (item_id INTEGER, slot INTEGER, count INTEGER, chest INTEGER, shulker_slot INTEGER, FOREIGN KEY (item_id) REFERENCES items(id))")
+    pool.query("CREATE TABLE IF NOT EXISTS inventory_history (id SERIAL PRIMARY KEY, item_id INTEGER REFERENCES items(id), user_id INTEGER, count INTEGER, event_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
 }
 
-export async function get_items(): Promise<{item: types.Item, location: types.Location, count: number}[]> {
+export async function get_items(): Promise<types.ItemLocation[]> {
     try {
         const request = await pool.query("SELECT * FROM locations JOIN items ON locations.item_id = items.id")
 
@@ -73,27 +74,40 @@ export async function get_summary(): Promise<{item: types.Item, count: number}[]
     }
 } 
 
-export async function insert(items: {item: types.Item, location: types.Location, count: number}[]): Promise<any> {
+export async function get_item_ids(items: types.ItemLocation[]) {
 
-    // Get item ids and insert if not exists
     for (const item of items) {
-        const exists = await pool.query("SELECT * FROM items WHERE name=$1 and metadata=$2 and nbt=$3", [item.item.name, item.item.metadata, item.item.nbt])
-        if (exists.rowCount == 0) {
-            await pool.query("INSERT INTO items (metadata, name, display_name, stack_size, nbt) VALUES ($1, $2, $3, $4, $5)", [item.item.metadata, item.item.name, item.item.display_name, item.item.stack_size, item.item.nbt])
+
+        // remove nbt data for shulker boxes, plaved back but not in the database
+        let nbt_hold = null
+        if (item.item.name.endsWith("shulker_box")) {
+            nbt_hold = item.item.nbt
+            item.item.nbt = null
+        }
+
+        let exists 
+        if (item.item.nbt != null) {
+            exists = await pool.query("SELECT * FROM items WHERE name=$1 and metadata=$2 and nbt=$3", [item.item.name, item.item.metadata, item.item.nbt])
+        } else {
+            exists = await pool.query("SELECT * FROM items WHERE name=$1 and metadata=$2 and nbt is null", [item.item.name, item.item.metadata])
+        }
+
+        if (exists.rowCount === 0) {
+            const newItemResult = await pool.query("INSERT INTO items (metadata, name, display_name, stack_size, nbt) VALUES ($1, $2, $3, $4, $5) RETURNING id", [item.item.metadata, item.item.name, item.item.display_name, item.item.stack_size, item.item.nbt])
+            item.item.id = newItemResult.rows[0].id
+        } else {
+            item.item.id = exists.rows[0].id
+        }
+
+        // restore nbt data for shulker boxes
+        if (item.item.name.endsWith("shulker_box")) {
+            item.item.nbt = nbt_hold
         }
     }
 
-    // add locations
-    for (const item of items) {
-        const exists = await pool.query("SELECT * FROM items WHERE name=$1 and metadata=$2 and nbt=$3", [item.item.name, item.item.metadata, item.item.nbt])
-        if (exists.rowCount > 0) {
-            await pool.query("INSERT INTO locations (item_id, slot, count, chest, shulker_slot) VALUES ($1, $2, $3, $4, $5)", [exists.rows[0].id, item.location.slot, item.count, item.location.chest, item.location.shulker_slot])
-        }
-    }
 
 
 }
-
 export async function apply_moves(moves: {item: types.Item, from: types.Location, to: types.Location, count: number}[]): Promise<any> {
 
     for (const move of moves) {
@@ -128,14 +142,19 @@ export async function apply_moves(moves: {item: types.Item, from: types.Location
                 }
             } else {
                 await pool.query("INSERT INTO locations (item_id, slot, count, chest, shulker_slot) VALUES ($1, $2, $3, $4, $5)", [move.item.id, move.to.slot, move.count, move.to.chest, move.to.shulker_slot])
-
             }
 
 
         }
 
         // Log change
+        if ( move.from.chest_type == types.ChestType.Inventory ) {
+            await pool.query("INSERT INTO inventory_history (item_id, user_id, count) VALUES ($1, $2, $3)", [move.item.id, 1, -move.count])
+        }
 
+        if ( move.to.chest_type == types.ChestType.Inventory ) {
+            await pool.query("INSERT INTO inventory_history (item_id, user_id, count) VALUES ($1, $2, $3)", [move.item.id, 1, move.count])
+        }
 
     }
 

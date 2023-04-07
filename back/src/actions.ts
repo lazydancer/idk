@@ -187,51 +187,32 @@ async function move_normal(requests: {item: types.Item, from: types.Location, to
 
 }
 
-export async function take_inventory() {
-    let result = []
-
-    let counts = global.player.get_counts()
-    for (let chest = 0; chest < counts["inventory"]; chest++) {
-        let inv = await global.player.open(types.ChestType.Inventory, chest)
-
-        inv = inv.map((x: any) => ({...x, chest: chest, shulker_slot: null}))
-        result.push(inv) 
-
-
-        // Open each shulker to record internals
-        for (const box of inv.filter( (x: any) => x.item.name.endsWith("shulker_box"))) {
-            let shulker_contents = await global.player.open_shulker(types.ChestType.Inventory, chest, box.location.slot)
-            await global.player.close_shulker()
-
-            shulker_contents.forEach((x: any) => {
-                x["slot"] = box.slot;
-                x["chest"] = chest;
-            })
-
-            result.push(shulker_contents)
-        }
-    }
-
-    back_to_ready_postion()
-
-    return result.flat()
-
-}
-
 export async function back_to_ready_postion() {
     await global.player.move_to_ready()
 }
 
-export async function get_chest_contents(station: number) {
-    let r = await global.player.open(types.ChestType.Station, station)
-    return r
-}
+export async function get_chest_contents(chest_type: types.ChestType, chest: number) {
+    let items = await global.player.open(chest_type, chest)
 
-export async function get_shukler_contents(station: number, slot: number) {
-    let r = await global.player.open_shulker(types.ChestType.Station, station, slot)
-    await global.player.close_shulker()
+    let shulkers = []
+    
+    for (const box of items.filter( (x:any) => x.item.name.endsWith("shulker_box"))) {
 
-    return r
+        let shulker_contents = await global.player.open_shulker(box.location.chest_type, box.location.chest, box.location.slot)
+        await global.player.close_shulker()
+
+
+        shulker_contents.forEach((x: {item: types.Item, location: types.Location}) => {
+            x.location.slot = box.location.slot;
+            x.location.chest = box.location.chest;
+        })
+
+        shulkers.push(shulker_contents)
+    }
+
+    items = items.concat(shulkers.flat())
+
+    return items
 }
 
 export function get_counts() {

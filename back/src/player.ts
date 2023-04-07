@@ -105,12 +105,10 @@ export class Player {
 
 		const hand_slot = 81
 
-
 		await this.open(chest_type, chest)
 
 		await this.lclick(slot)
 		await this.lclick(hand_slot)
-
 
 		await this.close()
 

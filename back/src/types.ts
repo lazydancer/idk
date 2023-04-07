@@ -7,7 +7,7 @@ export interface Item {
     id: number;
     name: string;
     metadata: number;
-    nbt: object;
+    nbt: object | null;
     display_name: string;
     stack_size: number;
 }
@@ -17,4 +17,10 @@ export interface Location {
     chest: number;
     slot: number;
     shulker_slot: number | null;
+}
+
+export interface ItemLocation {
+    item: Item;
+    location: Location;
+    count: number;
 }
