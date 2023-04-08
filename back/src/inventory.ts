@@ -21,14 +21,14 @@ export async function inventory() {
 
     // const expected = await get_items();
 
-    // Temporary to fill database
-    // convert actual to moves to apply to database
-    let moves = []
-    for (let actualItem of actual) {
-        moves.push({item: actualItem.item, to: actualItem.location, from: {chest_type: types.ChestType.Station, chest: 0, slot: 0, shulker_slot: null}, count: actualItem.count})
-    }
-    // don't move_items just apply the move to the database
-    await apply_moves(moves)
+    // // Temporary to fill database
+    // // convert actual to moves to apply to database
+    // let moves = []
+    // for (let actualItem of actual) {
+    //     moves.push({item: actualItem.item, to: actualItem.location, from: {chest_type: types.ChestType.Station, chest: 0, slot: 0, shulker_slot: null}, count: actualItem.count})
+    // }
+    // // don't move_items just apply the move to the database
+    // await apply_moves(moves)
 
 
 }
@@ -207,6 +207,47 @@ function get_open_slots(inventory: types.ItemLocation[]): types.Location[] {
     }
 
     return result;
+}
+
+function _score(inventory: types.ItemLocation[]): number {
+    /*
+    Gives a score to the current inventory state. The higher the score, the better the inventory state.
+    
+    Shulker utilization: You want to prioritize shulkers that are full with one type of item, as this maximizes the use of each shulker and reduces the overall number of shulkers needed.
+    Slot utilization: You want to minimize the overall number of slots needed, as this reduces the physical space required for the storage system.
+    Retrieval time: You want to balance the above factors with the time it takes to retrieve an item from a shulker. Retrieving an item from a shulker that is full with one type of item may be faster than retrieving an item from a shulker with a mix of items.    
+    */
+
+    const shulker_utilization_weight = 1
+    const slot_utilization_weight = 1
+    const retrieval_time_weight = 1
+
+    // Shulker utilization
+    const shulker_count = inventory.filter(item => item.item.name.endsWith("shulker_box")).length
+    const full_shulker_count = _find_full_shulkers(inventory).length
+    const shulker_utilization = full_shulker_count / shulker_count
+
+    // Slot utilization
+    const slots_count = inventory.filter(item => item.location.shulker_slot === null).length
+    const items_count = inventory.length
+    const slot_utilization = items_count / slots_count
+
+    // Retrieval time
+    // For each shulker, determine the number of unique items in it
+    const unique_items = inventory.filter(item => item.item.name.endsWith("shulker_box")).map(shulker => {
+        const subslots = _find_shulker_contents(inventory, shulker.location)
+        // return the number of unique items in this shulker
+        return subslots.map(subslot => subslot.item.id).filter((value, index, self) => self.indexOf(value) === index).length
+
+    })
+    const average_unique_items = unique_items.reduce((a, b) => a + b, 0) / unique_items.length
+
+
+    console.log(shulker_utilization)
+    console.log(slot_utilization)
+    console.log(average_unique_items)
+
+    return shulker_utilization_weight * shulker_utilization + slot_utilization_weight * slot_utilization - retrieval_time_weight * average_unique_items
 }
 
 function _find_full_shulkers(inventory: types.ItemLocation[]): {item: types.Item, location: types.Location, inner_item: types.Item}[] {
