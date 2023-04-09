@@ -50,10 +50,11 @@ export async function get_items(): Promise<types.ItemLocation[]> {
 // Group items for total counts
 export async function get_summary(): Promise<{item: types.Item, count: number}[]> {
     try {
-        const request = await pool.query(`SELECT metadata, nbt, name, MAX(display_name) as display_name, MAX(stack_size) as stack_size, SUM(count) as count 
+        const request = await pool.query(`SELECT item_id, metadata, nbt, name, MAX(display_name) as display_name, MAX(stack_size) as stack_size, SUM(count) as count 
                                           FROM locations 
                                           JOIN items ON locations.item_id = items.id 
-                                          GROUP BY metadata, nbt, name`)
+                                          GROUP BY item_id, metadata, nbt, name`)
+
 
         return request["rows"].filter( (x: any) => !x.name.endsWith("shulker_box")).map( x => (
             {
@@ -74,37 +75,37 @@ export async function get_summary(): Promise<{item: types.Item, count: number}[]
     }
 } 
 
-export async function get_item_ids(items: types.ItemLocation[]) {
+export async function get_item_ids(items: types.Item[]): Promise<void> {
 
     for (const item of items) {
 
-        // remove nbt data for shulker boxes, plaved back but not in the database
+        // remove nbt data for shulker boxes, placed back but not in the database
         let nbt_hold = null
-        if (item.item.name.endsWith("shulker_box")) {
-            nbt_hold = item.item.nbt
-            item.item.nbt = null
+        if (item.name.endsWith("shulker_box")) {
+            nbt_hold = item.nbt
+            item.nbt = null
         }
 
         let exists 
-        if (item.item.nbt != null) {
-            exists = await pool.query("SELECT * FROM items WHERE name=$1 and metadata=$2 and nbt=$3", [item.item.name, item.item.metadata, item.item.nbt])
+        if (item.nbt != null) {
+            exists = await pool.query("SELECT * FROM items WHERE name=$1 and metadata=$2 and nbt=$3", [item.name, item.metadata, item.nbt])
         } else {
-            exists = await pool.query("SELECT * FROM items WHERE name=$1 and metadata=$2 and nbt is null", [item.item.name, item.item.metadata])
+            exists = await pool.query("SELECT * FROM items WHERE name=$1 and metadata=$2 and nbt is null", [item.name, item.metadata])
         }
 
         if (exists.rowCount === 0) {
-            const newItemResult = await pool.query("INSERT INTO items (metadata, name, display_name, stack_size, nbt) VALUES ($1, $2, $3, $4, $5) RETURNING id", [item.item.metadata, item.item.name, item.item.display_name, item.item.stack_size, item.item.nbt])
-            item.item.id = newItemResult.rows[0].id
+            const newItemResult = await pool.query("INSERT INTO items (metadata, name, display_name, stack_size, nbt) VALUES ($1, $2, $3, $4, $5) RETURNING id", [item.metadata, item.name, item.display_name, item.stack_size, item.nbt])
+            item.id = newItemResult.rows[0].id
         } else {
-            item.item.id = exists.rows[0].id
+            item.id = exists.rows[0].id
         }
 
         // restore nbt data for shulker boxes
-        if (item.item.name.endsWith("shulker_box")) {
-            item.item.nbt = nbt_hold
+        if (item.name.endsWith("shulker_box")) {
+            item.nbt = nbt_hold
         }
-    }
 
+    }
 
 
 }

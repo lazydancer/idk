@@ -197,23 +197,65 @@ export async function get_chest_contents(chest_type: types.ChestType, chest: num
     let shulkers = []
     
     for (const box of items.filter( (x:any) => x.item.name.endsWith("shulker_box"))) {
-
-        let shulker_contents = await global.player.open_shulker(box.location.chest_type, box.location.chest, box.location.slot)
-        await global.player.close_shulker()
-
-
-        shulker_contents.forEach((x: {item: types.Item, location: types.Location}) => {
-            x.location.slot = box.location.slot;
-            x.location.chest = box.location.chest;
-        })
-
-        shulkers.push(shulker_contents)
+        shulkers.push(shulkerContents(box))
     }
-
     items = items.concat(shulkers.flat())
-
     return items
 }
+
+function shulkerContents(input: any): any[] {
+    const items: any[] = input.item.nbt.value.BlockEntityTag.value.Items.value.value;
+    const output: any[] = [];
+
+    
+
+    for (let item of items) {
+      const name = item.id.value.split(':').pop();
+      const count = item.Count.value;
+      const shulker_slot = item.Slot.value;
+      let nbt = item.tag ? item.tag : null;
+      // add name: "" to nbt
+      if (nbt) {
+        nbt["name"] = ""            
+      }
+    
+      // Does the best guess of these values, if in database is replaced with the correct values
+      const display_name = name.replace('minecraft:', '').replace('_', ' ').replace(/\b\w/g, (l:any) => l.toUpperCase()); // Capitalize first letter of each word and remove underscores
+
+      let stack_size = 64; // We assume all shulker box contents are stackable items with a stack size of 64
+      // if tool or armour, set stack size to 1
+      const unstackable = ['sword', 'pickaxe', 'axe', 'hoe', 'shovel', 'helmet', 'chestplate', 'leggings', 'boots', 'horse_armor', 'elytra', 'trident', 'shield', 'crossbow', 'carrot_on_a_stick', 'fishing_rod', 'flint_and_steel', 'shears', 'bow', 'shield', 'totem_of_undying', 'potion', 'splash_potion', 'lingering_potion', 'banner', 'enchanted_book', 'bed', 'minecart', 'music_disc', 'minecart', 'milk_bucket', 'tnt_minecart', 'hopper_minecart', 'chest_minecart', 'furnace_minecart', 'boat', 'elytra', 'saddle', 'spawn_egg', 'writable_book', 'written_book', 'map', 'compass', 'clock', 'ender_pearl', 'ender_eye', 'dragon_breath', 'totem_of_undying', 'crossbow', 'stew', 'bucket_of_fish', 'bucket_of_axolotl', 'soup']
+      if (unstackable.some((x: string) => name.includes(x))) {
+        stack_size = 1;
+      }
+      // if stack of 16, set stack size to 16
+      const throwables =  ["snowball", "empty_bucket", "egg", "sign", "hanging_sign", "honey_bottle", "banner", "written_book", "ender_pearl", "armor_stand"]
+      if (throwables.some((x: string) => name.includes(x))) {
+        stack_size = 16;
+      }  
+
+      output.push({
+        item: {
+          id: 0,
+          name: name,
+          metadata: 0,
+          nbt,
+          display_name,
+          stack_size
+        },
+        location: {
+          chest_type: input.location.chest_type,
+          chest: input.location.chest,
+          slot: input.location.slot,
+          shulker_slot
+        },
+        count
+      });
+    }
+    
+    return output;
+  }
+
 
 export function get_counts() {
     return global.player.get_counts()

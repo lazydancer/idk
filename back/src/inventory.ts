@@ -46,10 +46,10 @@ export async function withdraw(items: {item: types.Item, count: number}[], stati
 
 export async function deposit(station: number) {
     let items = await actions.get_chest_contents(types.ChestType.Station, station)
-    get_item_ids(items)
-    
+
+    await get_item_ids(items.map((i: any) => i.item))
+
     const inventory = await get_items()
-    
     const moves = select_spaces_to_place_items(items, inventory, station)
 
     await actions.move_items(moves)
@@ -104,7 +104,8 @@ function select_items_to_withdraw(items: {item: types.Item, count: number}[], in
             continue;
         }
 
-        let item_inventory = inventory.filter( inv_item => item.item.id == inv_item.item.id )
+        let item_inventory = inventory.filter( inv_item => item.item.id === inv_item.item.id )
+
 
         // Sort where shulker slots are null first
         item_inventory.sort( (a, b) => {
@@ -119,6 +120,7 @@ function select_items_to_withdraw(items: {item: types.Item, count: number}[], in
 
         // Loop through until we have enough
         for( let inv_item of item_inventory) {
+
             // If we have more than we need, just take what we need
             if (inv_item.count > count) {
                 move_items.push({
@@ -241,11 +243,6 @@ function _score(inventory: types.ItemLocation[]): number {
 
     })
     const average_unique_items = unique_items.reduce((a, b) => a + b, 0) / unique_items.length
-
-
-    console.log(shulker_utilization)
-    console.log(slot_utilization)
-    console.log(average_unique_items)
 
     return shulker_utilization_weight * shulker_utilization + slot_utilization_weight * slot_utilization - retrieval_time_weight * average_unique_items
 }

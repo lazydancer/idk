@@ -4,7 +4,7 @@
 
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
-  const duration = 200; // duration of the fade effect in milliseconds
+  const duration = 100; // duration of the fade effect in milliseconds
 
   let items = [];
   let selectedItem = null;
@@ -20,8 +20,6 @@
     items.forEach((item, i) => {item.key = i + 1;});
 
     visibleItems = items;
-   
-
   });
 
   function handleOverlayClose() {
@@ -56,10 +54,12 @@
   let ordered = false
   let ordered_message = ""
 
-  async function submitOrder() {
+  async function withdraw() {
     let order_item_list = items.filter(it => it.orderCount > 0).map(({count, key, orderTempTextBox, ...keepAttrs}) => keepAttrs)
     order_item_list = order_item_list.map(({orderCount, ...rest}) => ({...rest, count: orderCount}) )
     
+    console.log("order", order_item_list)
+
     const res = await fetch(`http://localhost:8000/api/order`, {
       method: 'POST',
       body: JSON.stringify(order_item_list),
@@ -67,14 +67,14 @@
     })
 
     ordered = true
-    ordered_message = "Preparing items at Chest 1"
+    ordered_message = "Preparing items at Chest 0"
   }
 
 
   async function deposit() {
     const res = await fetch(`http://localhost:8000/api/deposit`, {
       method: 'POST',
-      body: JSON.stringify({station: 2}),
+      body: JSON.stringify({station: 0}),
       headers: { 'Content-Type': 'application/json'}
     })
   }
@@ -110,23 +110,28 @@
   </header>
 
   <main class="flex flex-row items-start px-12 pt-6 max-w-none mx-auto">
-
     {#if selectedItem}
     <div transition:fade={{ duration }}>
       <Item item={selectedItem} close={handleOverlayClose} />
     </div>
     {/if}
-
     <div class="w-1/2 px-2">
       <h3 class="text-gray-900 dark:text-gray-100 pb-4">Inventory</h3>
-      <div class="overflow-y-scroll pr-2" style="height: 85vh">
+      <div class="overflow-y-auto max-h-[85vh] pr-2">
         <List items={visibleItems} onItemClick={(clickedItem) => selectedItem = clickedItem}/>
       </div>
     </div>
     <div class="w-1/2 px-2">
       <h3 class="text-gray-900 dark:text-gray-100 pb-4">Station 00</h3>
-      <div class="overflow-y-scroll pr-2" style="height: 85vh">
+      <div class="overflow-y-auto max-h-[85vh] pr-2">
         <List items={order_item_list} onItemClick={(clickedItem) => selectedItem = clickedItem} countProp="orderCount"/>
+      </div>
+      <div class="flex justify-left mt-4">
+        {#if order_item_list.length > 0}
+          <button class="px-4 py-2 bg-red-600 hover:bg-red-900 text-white text-sm" on:click={withdraw}>Withdraw</button>
+        {:else}
+          <button class="px-4 py-2 mr-2 bg-red-600 hover:bg-red-900 text-white text-sm" on:click={deposit}>Deposit</button>
+        {/if}
       </div>
     </div>
   </main>
