@@ -1,8 +1,8 @@
 import { Pool } from "pg";
 const pool = new Pool({
-    host: "localhost",
-    user: "mc-inventory",
-    database: "mc-inventory",
+    host: process.env['DB_HOST'],
+    user: process.env['DB_USER'],
+    database: process.env['DB_NAME'],
     password: process.env['DB_PASS'],
     port: 5432
 })
