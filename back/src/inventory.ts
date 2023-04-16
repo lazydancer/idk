@@ -11,11 +11,13 @@ export async function inventory() {
         console.log("inventory", i)
 
         let r = await actions.get_chest_contents(types.ChestType.Inventory, i)
-        get_item_ids(r)
+        get_item_ids(r.map((i: any) => i.item))
 
         actual.push(r)
     }
     actual = actual.flat()
+
+    print_inventory(actual)
 
     actions.back_to_ready_postion()
 
@@ -31,6 +33,11 @@ export async function inventory() {
     // await apply_moves(moves)
 
 
+}
+
+export async function print_inventory(inventory: types.ItemLocation[]) {
+    // Print a table of invetory where each item is one line
+    console.table(inventory.map( (x: any) => { return {item: x.item.name, count: x.count, chest: x.location.chest, slot: x.location.slot, shulker_slot: x.location.shulker_slot} }))
 }
 
 export async function withdraw(items: {item: types.Item, count: number}[], station: number) {

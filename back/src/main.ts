@@ -5,6 +5,8 @@ import { Player } from './player'
 
 import * as inventory from './inventory'
 
+require('dotenv').config()
+
 const express = require('express')
 var cors = require('cors')
 const app = express()

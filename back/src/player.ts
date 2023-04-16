@@ -1,8 +1,6 @@
 const mineflayer = require('mineflayer')
 const vec3 = require('vec3')
 
-require('dotenv').config()
-
 import * as types from './types'
 
 
