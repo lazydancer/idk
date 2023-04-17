@@ -1,11 +1,12 @@
+require('dotenv').config()
+
 import { Request, Response } from "express"
 
-import { get_summary } from './db'
+import { get_summary, init_tables } from './db'
 import { Player } from './player'
 
 import * as inventory from './inventory'
 
-require('dotenv').config()
 
 const express = require('express')
 var cors = require('cors')
@@ -40,6 +41,13 @@ async function main() {
     if (process.argv[2] == "inventory") {
       await new Promise(r => setTimeout(r, 7000));
       await inventory.inventory()
+    }
+  } 
+
+  if (process.argv.length > 2) {
+    if (process.argv[2] == "init") {
+      await new Promise(r => setTimeout(r, 7000));
+      await init_tables()
     }
   } 
 

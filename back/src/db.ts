@@ -10,10 +10,10 @@ const pool = new Pool({
 import * as types from './types'
 
 
-function init_tables() {
-    pool.query("CREATE TABLE IF NOT EXISTS items (id SERIAL PRIMARY KEY, metadata INTEGER, name TEXT, display_name TEXT, stack_size INTEGER, nbt JSONB)")
-    pool.query("CREATE TABLE IF NOT EXISTS locations (item_id INTEGER, slot INTEGER, count INTEGER, chest INTEGER, shulker_slot INTEGER, FOREIGN KEY (item_id) REFERENCES items(id))")
-    pool.query("CREATE TABLE IF NOT EXISTS inventory_history (id SERIAL PRIMARY KEY, item_id INTEGER REFERENCES items(id), user_id INTEGER, count INTEGER, event_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+export async function init_tables() {
+    await pool.query("CREATE TABLE IF NOT EXISTS items (id SERIAL PRIMARY KEY, metadata INTEGER, name TEXT, display_name TEXT, stack_size INTEGER, nbt JSONB)")
+    await pool.query("CREATE TABLE IF NOT EXISTS locations (item_id INTEGER, slot INTEGER, count INTEGER, chest INTEGER, shulker_slot INTEGER, FOREIGN KEY (item_id) REFERENCES items(id))")
+    await pool.query("CREATE TABLE IF NOT EXISTS inventory_history (id SERIAL PRIMARY KEY, item_id INTEGER REFERENCES items(id), user_id INTEGER, count INTEGER, event_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
 }
 
 export async function get_items(): Promise<types.ItemLocation[]> {
