@@ -7,7 +7,8 @@ export async function inventory() {
     const counts = await actions.get_counts()
 
     let actual = []
-    for (let i = 0; i < counts["inventory"]; i++) {
+    // for (let i = 0; i < counts["inventory"]; i++) {
+    for (let i = 0; i < 72; i++) {
         console.log("inventory", i)
 
         let r = await actions.get_chest_contents(types.ChestType.Inventory, i)
@@ -17,33 +18,26 @@ export async function inventory() {
     }
     actual = actual.flat()
 
-    print_inventory(actual)
-
     actions.back_to_ready_postion()
 
     // const expected = await get_items();
 
-    // // Temporary to fill database
-    // // convert actual to moves to apply to database
-    // let moves = []
-    // for (let actualItem of actual) {
-    //     moves.push({item: actualItem.item, to: actualItem.location, from: {chest_type: types.ChestType.Station, chest: 0, slot: 0, shulker_slot: null}, count: actualItem.count})
-    // }
-    // // don't move_items just apply the move to the database
-    // await apply_moves(moves)
+    // Temporary to fill database
+    // convert actual to moves to apply to database
+    let moves = []
+    for (let actualItem of actual) {
+        moves.push({item: actualItem.item, to: actualItem.location, from: {chest_type: types.ChestType.Station, chest: 0, slot: 0, shulker_slot: null}, count: actualItem.count})
+    }
+    // don't move_items just apply the move to the database
+    await apply_moves(moves)
 
 
-}
-
-export async function print_inventory(inventory: types.ItemLocation[]) {
-    // Print a table of invetory where each item is one line
-    console.table(inventory.map( (x: any) => { return {item: x.item.name, count: x.count, chest: x.location.chest, slot: x.location.slot, shulker_slot: x.location.shulker_slot} }))
 }
 
 export async function withdraw(items: {item: types.Item, count: number}[], station: number) {
     const inventory = await get_items();
 
-    let moves = select_items_to_withdraw(items, inventory, station)
+    let moves = _select_items_to_withdraw(items, inventory, station)
 
     await actions.move_items(moves)
 
@@ -57,14 +51,14 @@ export async function deposit(station: number) {
     await get_item_ids(items.map((i: any) => i.item))
 
     const inventory = await get_items()
-    const moves = select_spaces_to_place_items(items, inventory, station)
+    const moves = _select_spaces_to_place_items(items, inventory, station)
 
     await actions.move_items(moves)
     await apply_moves(moves)
 
 }
 
-function select_items_to_withdraw(items: {item: types.Item, count: number}[], inventory: types.ItemLocation[], station: number): {item: types.Item, from: types.Location, to: types.Location, count: number}[] {
+function _select_items_to_withdraw(items: {item: types.Item, count: number}[], inventory: types.ItemLocation[], station: number): {item: types.Item, from: types.Location, to: types.Location, count: number}[] {
     let move_items: {item: types.Item, from: types.Location, to: types.Location, count: number}[] = [];
     
     let open_slot = 0
@@ -163,7 +157,7 @@ function select_items_to_withdraw(items: {item: types.Item, count: number}[], in
 }
 
 
-function select_spaces_to_place_items(items_to_move: types.ItemLocation[], inventory: types.ItemLocation[], station: number) {
+function _select_spaces_to_place_items(items_to_move: types.ItemLocation[], inventory: types.ItemLocation[], station: number) {
     let result: any = [];
 
     let open_slots_list = get_open_slots(inventory)

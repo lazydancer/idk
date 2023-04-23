@@ -16,6 +16,28 @@ export async function move_items(requests: {item: types.Item, from: types.Locati
 }
 
 
+export async function get_chest_contents(chest_type: types.ChestType, chest: number) {
+    let items = await global.player.open(chest_type, chest)
+
+    let shulkers = []
+    
+    for (const box of items.filter( (x:any) => x.item.name.endsWith("shulker_box"))) {
+        shulkers.push(shulkerContents(box))
+    }
+    items = items.concat(shulkers.flat())
+    return items
+}
+
+
+export async function back_to_ready_postion() {
+    await global.player.move_to_ready()
+}
+
+export function get_counts() {
+    return global.player.get_counts()
+}
+
+
 function remove_moves_inside_shulker(requests: {item: types.Item, from: types.Location, to: types.Location, count: number}[]) {
     const shulkers = requests.filter( (r: any) => r.item.name.endsWith("shulker_box"));
 
@@ -187,23 +209,16 @@ async function move_normal(requests: {item: types.Item, from: types.Location, to
 
 }
 
-export async function back_to_ready_postion() {
-    await global.player.move_to_ready()
-}
 
-export async function get_chest_contents(chest_type: types.ChestType, chest: number) {
-    let items = await global.player.open(chest_type, chest)
 
-    let shulkers = []
-    
-    for (const box of items.filter( (x:any) => x.item.name.endsWith("shulker_box"))) {
-        shulkers.push(shulkerContents(box))
-    }
-    items = items.concat(shulkers.flat())
-    return items
-}
 
 function shulkerContents(input: any): any[] {
+
+    // return early if shulker is empty
+    if (!input.item.nbt || !input.item.nbt.value) {
+        return []
+    }
+
     const items: any[] = input.item.nbt.value.BlockEntityTag.value.Items.value.value;
     const output: any[] = [];
 
@@ -257,9 +272,6 @@ function shulkerContents(input: any): any[] {
   }
 
 
-export function get_counts() {
-    return global.player.get_counts()
-}
 
 async function clicks_move_item(from_slot: number, to_slot: number, count: number) {
     await global.player.lclick(from_slot)

@@ -4,8 +4,16 @@ const vec3 = require('vec3')
 import * as types from './types'
 
 
+let offline_config = {
+	"host": "localhost",
+	"port": 25565,
+	"location": [15, 83, 130],
+}
+
+let config = offline_config
+
 let BUILD = {
-	location: [15, 83, 130],
+	location: config['location'],
 	width: 4,
 	depth: 12,
 	map: [[0,0]],
@@ -31,8 +39,8 @@ export class Player {
 
 	constructor() {
 		this.bot = mineflayer.createBot({
-				host: "localhost",
-				port: 25565,
+				host: config['host'],
+				port: config['port'],
 				username: process.env['MC_EMAIL'],
 				password: process.env['MC_PASS'],
 				auth: 'microsoft' 
