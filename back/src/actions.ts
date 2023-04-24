@@ -11,8 +11,6 @@ export async function move_items(requests: {item: types.Item, from: types.Locati
 
     await move_normal(requests)
 
-    back_to_ready_postion()
-
 }
 
 
@@ -28,10 +26,6 @@ export async function get_chest_contents(chest_type: types.ChestType, chest: num
     return items
 }
 
-
-export async function back_to_ready_postion() {
-    await global.player.move_to_ready()
-}
 
 export function get_counts() {
     return global.player.get_counts()
