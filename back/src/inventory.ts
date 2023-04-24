@@ -1,4 +1,4 @@
-import { get_items, apply_moves, get_item_ids} from './db'
+import { get_items, apply_moves, get_item_ids, get_summary} from './db'
 import * as actions from './actions'
 import * as types from './types'
 
@@ -18,8 +18,6 @@ export async function inventory() {
     }
     actual = actual.flat()
 
-    actions.back_to_ready_postion()
-
     // const expected = await get_items();
 
     // Temporary to fill database
@@ -32,6 +30,11 @@ export async function inventory() {
     await apply_moves(moves)
 
 
+}
+
+export async function list(): Promise<{item: types.Item, count: number}[]> {
+    const items = await get_summary()
+    return items
 }
 
 export async function withdraw(items: {item: types.Item, count: number}[], station: number) {
@@ -56,6 +59,15 @@ export async function deposit(station: number) {
     await actions.move_items(moves)
     await apply_moves(moves)
 
+}
+
+
+export async function quote(station: number): Promise<{item: types.Item, count: number}[]> {
+    let items = await actions.get_chest_contents(types.ChestType.Station, station)
+
+    await get_item_ids(items.map((i: any) => i.item))
+
+    return items.map( (x: any) => {return {item: x.item, count: x.count}})
 }
 
 function _select_items_to_withdraw(items: {item: types.Item, count: number}[], inventory: types.ItemLocation[], station: number): {item: types.Item, from: types.Location, to: types.Location, count: number}[] {

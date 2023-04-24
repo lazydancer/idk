@@ -10,6 +10,12 @@ let offline_config = {
 	"location": [15, 83, 130],
 }
 
+let online_config = {
+	"host": "play.ecc.eco",
+	"port": 25565,
+	"location": [-5327, 300, 6903],
+}
+
 let config = offline_config
 
 let BUILD = {

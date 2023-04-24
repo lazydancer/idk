@@ -2,11 +2,10 @@ require('dotenv').config()
 
 import { Request, Response } from "express"
 
-import { get_summary, init_tables } from './db'
+import { init_tables } from './db'
 import { Player } from './player'
 
 import * as inventory from './inventory'
-
 
 const express = require('express')
 var cors = require('cors')
@@ -24,7 +23,7 @@ async function main() {
   app.use(express.json())
 
   app.get('/api/list', async function (req: Request, res: Response) {
-    const items = await get_summary()
+    const items = await inventory.list()
     res.send(items)
   })
 
@@ -36,6 +35,10 @@ async function main() {
     await inventory.deposit(req.body['station'])
   })
 
+  app.post('/api/quote', async function (req: Request, res: Response) {
+    const quote = await inventory.quote(req.body['station'])
+    res.send(quote)
+  })
 
   if (process.argv.length > 2) {
     if (process.argv[2] == "inventory") {
