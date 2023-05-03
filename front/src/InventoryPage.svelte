@@ -1,5 +1,6 @@
 <script>
   import List from './List.svelte';
+  import { navigate } from 'svelte-routing';
 
   import { onMount } from 'svelte';
 
@@ -34,4 +35,4 @@
 </div>
 </form>
 
-<List items={visibleItems} onItemClick={(clickedItem) => navigateTo('item', clickedItem)}/>
+<List items={visibleItems} onItemClick={(clickedItem) => navigate('/item/' + clickedItem.item.id)}/>

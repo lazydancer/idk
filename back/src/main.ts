@@ -27,6 +27,12 @@ async function main() {
     res.send(items)
   })
 
+  app.get('/api/item/:item_id', async function (req: Request, res: Response) {
+    const items = await inventory.list()
+    const item = items.find( (x:any) => x.item.id == req.params.item_id)
+    res.send(item)
+  })
+
   app.post('/api/order', async function (req: Request, res: Response) {
     await inventory.withdraw(req.body, 0)
   })

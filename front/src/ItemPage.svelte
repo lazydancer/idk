@@ -2,7 +2,26 @@
   import { Line } from 'svelte-chartjs'
   import 'chart.js/auto'
 
-  export let item;
+  export let item_id;
+
+  let item = {
+    item: {
+      name: "",
+      display_name: "",
+      metadata: 0,
+      nbt: null,
+    },
+    count: 0
+  };
+
+  import { onMount } from 'svelte';
+
+
+  onMount(async () => {
+    console.log("reqeuest item", item_id, "from api")
+    const res = await fetch(`http://localhost:8000/api/item/${item_id}`);
+    item = await res.json();
+  });
 
 
   const itemData = [
@@ -55,7 +74,7 @@
 </script>
 
 <div class="py-6 flex">
-  <img src="static/icons/{item.item.name}.png" style="width:64px; height:64px;" alt={item.item.name} />
+  <img src="/static/icons/{item.item.name}.png" style="width:64px; height:64px;" alt={item.item.name} />
   <h2 class="text-lg font-medium text-gray-900 pt-4 pl-4">{item.item.display_name}</h2>
 </div>
 <div class="py-2">
@@ -73,7 +92,9 @@
 </div>
 <div class="flex">
   <p class="text-sm text-gray-500 pt-2">withdraw:</p>
+  {#if item.count >= 1}
   <button class="bg-red-700 hover:bg-red-900 text-white py-1 px-3 border-transparent mx-1" on:click={() => withdraw(1)}>1</button>
+  {/if}
   {#if item.count >= 64}
   <button class="bg-red-700 hover:bg-red-900 text-white py-1 px-3 border-transparent mx-1" on:click={() => withdraw(64)}>64</button>
   {/if}

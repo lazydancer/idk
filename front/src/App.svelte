@@ -1,7 +1,11 @@
 <script>
+  import {Router, Link, Route} from 'svelte-routing';
+
   import InventoryPage from './InventoryPage.svelte';
   import ItemPage from './ItemPage.svelte';
   import DepositPage from './DepositPage.svelte';
+
+  export let url = "";
 
   let currentPage = "inventory"
   let selectedItem = null;
@@ -22,35 +26,39 @@
   <meta name="robots" content="noindex nofollow" />
 	<html lang="en" />
 </svelte:head>
+<Router url="{url}">
+
 
   <header class="max-w-none mx-auto px-8 py-4 border-b border-gray-200 bg-white w-full fixed top-0 left-0 z-50">
     <div class="flex items-center justify-between">
-      <h1 class="cursor-pointer mr-20 p-1 w-20 flex-none" on:click|preventDefault={() => currentPage = 'inventory'}>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 9 5" shape-rendering="crispEdges"><path stroke="#c40424" d="M0 0h1m3 0h1m1 0h1M4 1h1m1 0h1M0 2h1m2 0h2m1 0h1m1 0h1M0 3h1m1 0h1m1 0h1m1 0h2M0 4h1m1 0h3m1 0h1m1 0h1"/></svg>
-      </h1>
+      <Link to="/">
+        <h1 class="cursor-pointer mr-20 p-1 w-20 flex-none">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 9 5" shape-rendering="crispEdges"><path stroke="#c40424" d="M0 0h1m3 0h1m1 0h1M4 1h1m1 0h1M0 2h1m2 0h2m1 0h1m1 0h1M0 3h1m1 0h1m1 0h1m1 0h2M0 4h1m1 0h3m1 0h1m1 0h1"/></svg>
+        </h1>
+      </Link>
       <nav class="flex">
         <ul class="flex flex-row">
-          <li class="mr-6">
-            <a href="#" class={currentPage === 'inventory' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'} on:click|preventDefault={() => currentPage = 'inventory'}>Inventory</a>
-          </li>
-          <li>
-            <a href="#" class={currentPage === 'deposit' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'} on:click|preventDefault={() => currentPage = 'deposit'}>Deposit</a>
-          </li>
+          <Link to="/">Inventory</Link>
+          <Link to="/deposit">Deposit</Link>
         </ul>
       </nav>
     </div>
   </header>
 
-  <main class="pt-20 pb-8 mx-8">
-    {#if currentPage === 'inventory'}
-      <InventoryPage navigateTo={setPage}/>
-    {:else if currentPage === 'deposit'}
-      <DepositPage  navigateTo={setPage} />
-    {:else if currentPage === 'item'}
-      <ItemPage item={selectedItem} navigateTo={setPage}/>
-    {/if}
-  </main>
+    <nav>
+      <Link to="/">Inventory</Link>
+      <Link to="/deposit">Deposit</Link>
+    </nav>
 
+    <main class="pt-20 pb-8 mx-8">
+
+    <Route path="/" component="{InventoryPage}" />
+    <Route path="/deposit" component="{DepositPage}" />
+    <Route path="/item/:item_id" component="{ItemPage}" />
+    
+  </main>
+  
+</Router>
 
 
 <style global lang="postcss">
