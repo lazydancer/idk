@@ -2,7 +2,7 @@ require('dotenv').config()
 
 import { Request, Response } from "express"
 
-import { init_tables } from './db'
+import { init_tables, get_job, get_survey } from './db'
 import { Worker } from './worker'
 
 import * as inventory from './inventory'
@@ -42,16 +42,25 @@ async function main() {
     await inventory.withdraw(req.body, 0)
   })
 
-  app.post('/api/quote', async function (req: Request, res: Response) {
-    const quote = await inventory.quote(req.body['station'], false)
-    res.sendStatus(quote)
+  app.get('/api/quote/:station', async function (req: Request, res: Response) {
+    const job_id = await inventory.quote(parseInt(req.params.station), false)
+    console.log(job_id)
+    res.send({'job_id': job_id})
+  })
+
+  app.get('/api/survey/:job_id', async function (req: Request, res: Response) {
+    const quote = await inventory.get_survey(parseInt(req.params.job_id))
+    res.send(quote)
+  })
+
+  app.get('/api/job/:job_id', async function (req: Request, res: Response) {
+    const job = await get_job(parseInt(req.params.job_id))
+    res.send(job)
   })
 
   app.post('/api/deposit', async function (req: Request, res: Response) {
     await inventory.quote(req.body['station'], true)
   })
-
-
 
   if (process.argv.length > 2) {
     if (process.argv[2] == "init") {

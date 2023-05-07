@@ -39,8 +39,7 @@ export class Worker {
                             await inventory.deposit(items);
                         } else {
                             // data is written to the stations database, which can later be queried and returned from the front end
-                            console.log("unimplemented")
-                            // db.add_items_station(station.chest, items)
+                            await db.add_survey(job.id, items)
                         }
 
                         break;

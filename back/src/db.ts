@@ -19,6 +19,8 @@ export async function init_tables() {
     await pool.query("CREATE TABLE IF NOT EXISTS items (id SERIAL PRIMARY KEY, metadata INTEGER, name TEXT, display_name TEXT, stack_size INTEGER, nbt JSONB)")
     await pool.query("CREATE TABLE IF NOT EXISTS locations (item_id INTEGER, slot INTEGER, count INTEGER, chest INTEGER, shulker_slot INTEGER, FOREIGN KEY (item_id) REFERENCES items(id))")
     await pool.query("CREATE TABLE IF NOT EXISTS inventory_history (id SERIAL PRIMARY KEY, item_id INTEGER REFERENCES items(id), user_id INTEGER, count INTEGER, event_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+    await pool.query("CREATE TABLE IF NOT EXISTS queue (id serial4 NOT NULL, \"type\" text NOT NULL, parameters jsonb NULL, status text NOT NULL DEFAULT 'queued'::text, created_at timestamp NOT NULL DEFAULT now(), started_at timestamp NULL, completed_at timestamp NULL, CONSTRAINT queue_pkey PRIMARY KEY (id))")
+    await pool.query("CREATE TABLE surveyed IF NOT EXISTS (slot int4, count int4, chest int4, shulker_slot int4, item_id int4, \"date\" timestamp DEFAULT now(), chest_type int4, job_id int4)")
 }
 
 export async function get_items(): Promise<types.ItemLocation[]> {
@@ -194,6 +196,12 @@ export async function get_next_job(): Promise<types.Job> {
     return job;
 }
 
+export async function get_job(id: any): Promise<types.Job> {
+    const result = await pool.query("SELECT * FROM queue WHERE id = $1", [id])
+    const job = result.rows[0]
+    return job
+}
+
 
 export async function change_job_status(id: any, status: any): Promise<void> {
     switch (status) {
@@ -209,3 +217,39 @@ export async function change_job_status(id: any, status: any): Promise<void> {
     }
 }
 
+/*
+Surveyed
+*/
+
+export async function add_survey(job_id: number, items: types.ItemLocation[]): Promise<void> {
+    for( const item of items ) {
+        await pool.query("INSERT INTO surveyed (job_id, item_id, chest_type, chest, slot, shulker_slot, count) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+            [job_id, item.item.id, item.location.chest_type, item.location.chest, item.location.slot, item.location.shulker_slot, item.count])    
+    }
+}
+
+export async function get_survey(job_id: number): Promise<types.ItemLocation[]> {
+    const result = await pool.query("SELECT item_id, name, metadata, nbt, display_name, stack_size, chest_type, chest, slot, shulker_slot, count FROM surveyed JOIN items ON surveyed.item_id = items.id WHERE job_id = $1", [job_id])
+
+    return result.rows.map( (x: any) => (
+        {
+            item: {
+                id: x.item_id,
+                name: x.name,
+                metadata: x.metadata,
+                nbt: x.nbt,
+                display_name: x.display_name,
+                stack_size: x.stack_size,
+            },
+
+            location: {
+                chest_type: x.chest_type,
+                chest: x.chest,
+                slot: x.slot,
+                shulker_slot: x.shulker_slot,
+            },
+
+            count: x.count,
+        }
+    ))
+}
