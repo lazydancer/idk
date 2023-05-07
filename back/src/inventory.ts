@@ -19,30 +19,11 @@ import * as types from './types'
     program will call the first method with the deposit flag set to true.
 */
 
+const INVENTORY_SIZE = 324
+
 export async function list(): Promise<{item: types.Item, count: number}[]> {
     const inventory = await get_inventory()
-
-    const groupedItems = inventory.filter(x => !x.item.name.endsWith("shulker_box")).reduce((acc: any, x) => {
-        const existing = acc.find((y:any) => y.item.id === x.item.id);
-        if (existing) {
-          existing.count += x.count;
-        } else {
-          acc.push({
-            item: {
-              id: x.item.id,
-              name: x.item.name,
-              metadata: x.item.metadata,
-              nbt: x.item.nbt,
-              display_name: x.item.display_name,
-              stack_size: x.item.stack_size,
-            },
-            count: x.count,
-          });
-        }
-        return acc;
-      }, []);
-
-    return groupedItems
+    return summarize(inventory)
 }
 
 export async function withdraw(items: {item: types.Item, count: number}[], station: number) {
@@ -74,6 +55,12 @@ export async function deposit(items: types.ItemLocation[]): Promise<number> {
     return id
 }
 
+export async function get_survey(job_id: number): Promise<{item: types.Item, count: number}[]> {
+    const inventory = await db.get_survey(job_id)
+    console.log(inventory)
+    return summarize(inventory)
+}
+
 async function get_inventory(): Promise<types.ItemLocation[]> {
     // Get the future inventory state
 
@@ -94,6 +81,27 @@ async function get_inventory(): Promise<types.ItemLocation[]> {
     return inventory
 }
 
+function summarize(inventory: types.ItemLocation[]): {item: types.Item, count: number}[] {
+    return inventory.filter(x => !x.item.name.endsWith("shulker_box")).reduce((acc: any, x) => {
+        const existing = acc.find((y:any) => y.item.id === x.item.id);
+        if (existing) {
+          existing.count += x.count;
+        } else {
+          acc.push({
+            item: {
+              id: x.item.id,
+              name: x.item.name,
+              metadata: x.item.metadata,
+              nbt: x.item.nbt,
+              display_name: x.item.display_name,
+              stack_size: x.item.stack_size,
+            },
+            count: x.count,
+          });
+        }
+        return acc;
+      }, []);
+}
 
 function select_items_to_withdraw(items: {item: types.Item, count: number}[], inventory: types.ItemLocation[]): types.ItemLocation[] {
     let selectedItems: types.ItemLocation[] = [];
@@ -108,7 +116,7 @@ function select_items_to_withdraw(items: {item: types.Item, count: number}[], in
         let fullShulkers = getFullShulkers(inventory).filter( x => x.inner_item.id === item.id)
 
         for (const shulker of fullShulkers) {
-            if (remainingCount <= 27 * item.stack_size) break;
+            if (remainingCount < 27 * item.stack_size) break;
 
             selectedItems.push({"item": shulker.item, "location": shulker.location, "count": 1,})
 
@@ -215,7 +223,7 @@ function select_spaces_to_withdraw_items(items_to_move: types.ItemLocation[], st
 function select_spaces_to_place_items(items_to_move: types.ItemLocation[], inventory: types.ItemLocation[]): types.MoveItem[] {
     let result: any = [];
 
-    let open_slots_list = get_open_slots(inventory, 324)
+    let open_slots_list = get_open_slots(inventory, INVENTORY_SIZE)
 
     items_to_move
         .filter(item => item.location.shulker_slot == null)
