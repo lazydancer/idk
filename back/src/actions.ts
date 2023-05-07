@@ -1,24 +1,28 @@
 import * as types from './types'
 
 
-export async function move_items(requests: {item: types.Item, from: types.Location, to: types.Location, count: number}[]) {
+export async function move(player: any, requests: types.MoveItem[]) {
+    /*
+        Move items between chests
+    */
     requests = structuredClone(requests)
 
-    requests = remove_moves_inside_shulker(requests)
+    requests = remove_moves_within_shulker(requests)
 
-    requests = await move_items_out_of_shulkers(requests)
-    requests = await move_items_into_shulkers(requests)
+    requests = await move_items_out_of_shulkers(player, requests)
+    requests = await move_items_into_shulkers(player, requests)
 
-    await move_normal(requests)
-
+    await move_normal(player, requests)
 }
 
 
-export async function get_chest_contents(chest_type: types.ChestType, chest: number) {
-    let items = await global.player.open(chest_type, chest)
-
-    let shulkers = []
+export async function survey(player: any, chest_type: types.ChestType, chest: number) {
+    /*
+        Survey a chest returning contents
+    */
+    let items = await player.open(chest_type, chest)
     
+    let shulkers = []
     for (const box of items.filter( (x:any) => x.item.name.endsWith("shulker_box"))) {
         shulkers.push(shulkerContents(box))
     }
@@ -27,12 +31,7 @@ export async function get_chest_contents(chest_type: types.ChestType, chest: num
 }
 
 
-export function get_counts() {
-    return global.player.get_counts()
-}
-
-
-function remove_moves_inside_shulker(requests: {item: types.Item, from: types.Location, to: types.Location, count: number}[]) {
+function remove_moves_within_shulker(requests: types.MoveItem[]) {
     const shulkers = requests.filter( (r: any) => r.item.name.endsWith("shulker_box"));
 
     let indexes_to_remove: any[] = []
@@ -58,7 +57,7 @@ function remove_moves_inside_shulker(requests: {item: types.Item, from: types.Lo
     return requests.filter((_, i) => !indexes_to_remove.includes(i))
 }
 
-async function move_items_out_of_shulkers(requests: {item: types.Item, from: types.Location, to: types.Location, count: number}[]) {
+async function move_items_out_of_shulkers(player: any, requests: types.MoveItem[]) {
     const shulker_inventory_start = 27
     const double_chest_inventory_start = 54
 
@@ -74,17 +73,17 @@ async function move_items_out_of_shulkers(requests: {item: types.Item, from: typ
     for (const key in grouped) {
         const first_move = grouped[key][0]
 
-        await global.player.open_shulker(first_move.from.chest_type, first_move.from.chest, first_move.from.slot)
+        await player.open_shulker(first_move.from.chest_type, first_move.from.chest, first_move.from.slot)
         for( let [i, move] of grouped[key].entries() ) {
-            await clicks_move_item(move.from.shulker_slot!, shulker_inventory_start + i, move.count)
+            await clicks_move_item(player, move.from.shulker_slot!, shulker_inventory_start + i, move.count)
         }
-        await global.player.close_shulker()
+        await player.close_shulker()
 
-        await global.player.open(first_move.to.chest_type, first_move.to.chest)
+        await player.open(first_move.to.chest_type, first_move.to.chest)
         for( let [i, move] of grouped[key].entries() ) {
-            await clicks_move_item(double_chest_inventory_start + i, move.to.slot!, move.count)
+            await clicks_move_item(player, double_chest_inventory_start + i, move.to.slot!, move.count)
         }
-        await global.player.close()
+        await player.close()
 
     }
 
@@ -96,7 +95,7 @@ async function move_items_out_of_shulkers(requests: {item: types.Item, from: typ
 
 }
 
-async function move_items_into_shulkers(requests: {item: types.Item, from: types.Location, to: types.Location, count: number}[]) {
+async function move_items_into_shulkers(player: any, requests: types.MoveItem[]) {
     const shulker_inventory_start = 27
     const double_chest_inventory_start = 54
 
@@ -115,15 +114,15 @@ async function move_items_into_shulkers(requests: {item: types.Item, from: types
         )
 
         if (found) {
-            await global.player.open(move.from.chest_type, move.from.chest)
+            await player.open(move.from.chest_type, move.from.chest)
 
-            await clicks_move_item(move.from.slot, double_chest_inventory_start, move.count)
+            await clicks_move_item(player, move.from.slot, double_chest_inventory_start, move.count)
 
-            await global.player.open_shulker(found.from.chest_type, found.from.chest, found.from.slot)
+            await player.open_shulker(found.from.chest_type, found.from.chest, found.from.slot)
 
-            await clicks_move_item(shulker_inventory_start, move.to.shulker_slot!, move.count)
+            await clicks_move_item(player, shulker_inventory_start, move.to.shulker_slot!, move.count)
 
-            await global.player.close_shulker()
+            await player.close_shulker()
 
             // update from to the new position
 
@@ -137,15 +136,15 @@ async function move_items_into_shulkers(requests: {item: types.Item, from: types
 
         } else {
             // "actions" has to trust "inventory" that a shulker is already there
-            await global.player.open(move.from.chest_type, move.from.chest)
+            await player.open(move.from.chest_type, move.from.chest)
 
-            await clicks_move_item(move.from.slot, double_chest_inventory_start, move.count)
+            await clicks_move_item(player, move.from.slot, double_chest_inventory_start, move.count)
 
-            await global.player.open_shulker(move.to.chest_type, move.to.chest, move.to.slot)
+            await player.open_shulker(move.to.chest_type, move.to.chest, move.to.slot)
 
-            await clicks_move_item(shulker_inventory_start, move.to.shulker_slot!, move.count)
+            await clicks_move_item(player, shulker_inventory_start, move.to.shulker_slot!, move.count)
 
-            await global.player.close_shulker()
+            await player.close_shulker()
         }
 
         
@@ -162,7 +161,7 @@ async function move_items_into_shulkers(requests: {item: types.Item, from: types
 
 }
 
-async function move_normal(requests: {item: types.Item, from: types.Location, to: types.Location, count: number}[]) {
+async function move_normal(player: any, requests: types.MoveItem[]) {
     const chunkSize = 27 // inventory (except hotbar)
     const inventoryStart = 54
 
@@ -180,22 +179,22 @@ async function move_normal(requests: {item: types.Item, from: types.Location, to
         for(let [i, req] of chunk.entries()) {
 
             if ( !equals_chest(prev_chest, req.from) ) {
-                await global.player.open(req.from.chest_type, req.from.chest)
+                await player.open(req.from.chest_type, req.from.chest)
                 prev_chest = { chest_type: req.from.chest_type, chest: req.from.chest }
             }
 
-            await clicks_move_item(req.from.slot, i + inventoryStart, req.count)            
+            await clicks_move_item(player, req.from.slot, i + inventoryStart, req.count)            
         }
 
         // Move from inventory to chest
         for(let [i, req] of chunk.entries()) {
 
             if ( !equals_chest(prev_chest, req.to) ) {
-                await global.player.open(req.to.chest_type, req.to.chest)
+                await player.open(req.to.chest_type, req.to.chest)
                 prev_chest = { chest_type: req.to.chest_type, chest: req.to.chest }
             }
 
-            await clicks_move_item(i + inventoryStart, req.to.slot, req.count)            
+            await clicks_move_item(player, i + inventoryStart, req.to.slot, req.count)            
             
         }
 
@@ -231,6 +230,7 @@ function shulkerContents(input: any): any[] {
       // Does the best guess of these values, if in database is replaced with the correct values
       const display_name = name.replace('minecraft:', '').replace('_', ' ').replace(/\b\w/g, (l:any) => l.toUpperCase()); // Capitalize first letter of each word and remove underscores
 
+      // Stack size is not avaiable from the shulker box, so we have to guess...
       let stack_size = 64; // We assume all shulker box contents are stackable items with a stack size of 64
       // if tool or armour, set stack size to 1
       const unstackable = ['sword', 'pickaxe', 'axe', 'hoe', 'shovel', 'helmet', 'chestplate', 'leggings', 'boots', 'horse_armor', 'elytra', 'trident', 'shield', 'crossbow', 'carrot_on_a_stick', 'fishing_rod', 'flint_and_steel', 'shears', 'bow', 'shield', 'totem_of_undying', 'potion', 'splash_potion', 'lingering_potion', 'banner', 'enchanted_book', 'bed', 'minecart', 'music_disc', 'minecart', 'milk_bucket', 'tnt_minecart', 'hopper_minecart', 'chest_minecart', 'furnace_minecart', 'boat', 'elytra', 'saddle', 'spawn_egg', 'writable_book', 'written_book', 'map', 'compass', 'clock', 'ender_pearl', 'ender_eye', 'dragon_breath', 'totem_of_undying', 'crossbow', 'stew', 'bucket_of_fish', 'bucket_of_axolotl', 'soup']
@@ -267,16 +267,16 @@ function shulkerContents(input: any): any[] {
 
 
 
-async function clicks_move_item(from_slot: number, to_slot: number, count: number) {
-    await global.player.lclick(from_slot)
+async function clicks_move_item(player: any, from_slot: number, to_slot: number, count: number) {
+    await player.lclick(from_slot)
 
     if (count == 64) {
-        await global.player.lclick(to_slot)
+        await player.lclick(to_slot)
     } else {
         for (let _a = 0; _a < count; _a += 1) {
-            await global.player.rclick(to_slot)
+            await player.rclick(to_slot)
         }
     }
     
-    await global.player.lclick(from_slot)
+    await player.lclick(from_slot)
 }

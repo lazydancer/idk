@@ -3,22 +3,27 @@ require('dotenv').config()
 import { Request, Response } from "express"
 
 import { init_tables } from './db'
-import { Player } from './player'
+import { Worker } from './worker'
 
 import * as inventory from './inventory'
+import { verify } from "crypto"
 
 const express = require('express')
 var cors = require('cors')
 const app = express()
 
-/// Player only used in actions but defined globally to ensure stays running
+// The inventory needs to select a slot to place items in. This is a global variable that is incremented each time a slot is used.
+// It is so bad and I am sorry. I put this here so I will fix it first.
 declare global {
-  var player: any;
+  var openSlot : number
 }
-global.player = new Player()
+globalThis.openSlot = 0
 
 async function main() {
 
+  const worker = new Worker()
+  worker.work()
+  
   app.use(cors())
   app.use(express.json())
 
@@ -37,25 +42,19 @@ async function main() {
     await inventory.withdraw(req.body, 0)
   })
 
-  app.post('/api/deposit', async function (req: Request, res: Response) {
-    await inventory.deposit(req.body['station'])
-  })
-
   app.post('/api/quote', async function (req: Request, res: Response) {
-    const quote = await inventory.quote(req.body['station'])
-    res.send(quote)
+    const quote = await inventory.quote(req.body['station'], false)
+    res.sendStatus(quote)
   })
 
-  if (process.argv.length > 2) {
-    if (process.argv[2] == "inventory") {
-      await new Promise(r => setTimeout(r, 7000));
-      await inventory.inventory()
-    }
-  } 
+  app.post('/api/deposit', async function (req: Request, res: Response) {
+    await inventory.quote(req.body['station'], true)
+  })
+
+
 
   if (process.argv.length > 2) {
     if (process.argv[2] == "init") {
-      await new Promise(r => setTimeout(r, 7000));
       await init_tables()
     }
   } 

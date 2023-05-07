@@ -1,10 +1,15 @@
 import { Pool } from "pg";
+import { loadConfig } from "./config";
+
+const config = loadConfig()
+
+
 const pool = new Pool({
-    host: process.env['DB_HOST'],
-    user: process.env['DB_USER'],
-    database: process.env['DB_NAME'],
-    password: process.env['DB_PASS'],
-    port: 5432
+    host: config.database.host,
+    user: config.database.user,
+    database: config.database.database,
+    password: config.database.password,
+    port: config.database.port,
 })
 
 import * as types from './types'
@@ -109,7 +114,8 @@ export async function get_item_ids(items: types.Item[]): Promise<void> {
 
 
 }
-export async function apply_moves(moves: {item: types.Item, from: types.Location, to: types.Location, count: number}[]): Promise<any> {
+
+export async function apply_moves(moves: types.MoveItem[]): Promise<any> {
 
     for (const move of moves) {
 
@@ -162,4 +168,44 @@ export async function apply_moves(moves: {item: types.Item, from: types.Location
 
 }
 
+
+/*
+Queue
+*/
+
+export async function get_queue(): Promise<types.Job[]> {
+    const result = await pool.query("SELECT * FROM queue")
+    return result.rows
+}
+
+export async function add_job(type: types.JobType, parameters: types.MoveItem[] | {chest_type: types.ChestType, chest: number}): Promise<number> {
+    const parameters_string = JSON.stringify(parameters)
+    const result  = await pool.query("INSERT INTO queue (type, parameters) VALUES ($1, $2) RETURNING id", [type, parameters_string]) 
+    const id = result.rows[0].id
+    return id
+}
+
+export async function get_next_job(): Promise<types.Job> {
+    const result = await pool.query(
+        'SELECT * FROM queue WHERE status = $1 ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED',
+        [types.JobStatus.Queued]
+    );
+    const job = result.rows[0];
+    return job;
+}
+
+
+export async function change_job_status(id: any, status: any): Promise<void> {
+    switch (status) {
+        case 'in_progress':
+            await pool.query("UPDATE queue SET status = $1, started_at = $2 WHERE id = $3", [status, new Date(), id])
+            break;
+        case 'completed':
+            await pool.query("UPDATE queue SET status = $1, completed_at = $2 WHERE id = $3", [status, new Date(), id])
+            break;
+        case 'failed':
+            await pool.query("UPDATE queue SET status = $1 WHERE id = $2", [status, id])
+            break;
+    }
+}
 

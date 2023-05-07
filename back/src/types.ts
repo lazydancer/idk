@@ -24,3 +24,29 @@ export interface ItemLocation {
     location: Location;
     count: number;
 }
+
+export interface MoveItem { 
+    item: Item, 
+    from: Location, 
+    to: Location, 
+    count: number 
+}
+
+export const enum JobType { 
+    Move = "move",
+    Survey = "survey",
+}
+
+export const enum JobStatus {
+    Queued = "queued",
+    InProgress = "in_progress",
+    Completed = "completed",
+    Failed = "failed",
+}
+
+export interface Job {
+    id: number;
+    type: JobType;
+    parameters: any; // Need to store as string in database but can be parsed as JSON
+    status: JobStatus;
+}

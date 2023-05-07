@@ -1,178 +1,221 @@
-import { get_items, apply_moves, get_item_ids, get_summary} from './db'
-import * as actions from './actions'
+import * as db from './db'
 import * as types from './types'
 
+/*
+    Inventory is responsible for managing the inventory by tracking the
+    locations of items within it. It provides functions for withdrawing and
+    depositing items.
 
-export async function inventory() {
-    const counts = await actions.get_counts()
+    When withdrawing items, there is only one path to follow. However, when
+    depositing items, there are two paths to choose from.
 
-    let actual = []
-    // for (let i = 0; i < counts["inventory"]; i++) {
-    for (let i = 0; i < 72; i++) {
-        console.log("inventory", i)
+    The first path involves depositing items to a station with just a station number.
+    In this case, the worker calls the "move" function if the deposit flag is set to
+    true.
 
-        let r = await actions.get_chest_contents(types.ChestType.Inventory, i)
-        get_item_ids(r.map((i: any) => i.item))
-
-        actual.push(r)
-    }
-    actual = actual.flat()
-
-    // const expected = await get_items();
-
-    // Temporary to fill database
-    // convert actual to moves to apply to database
-    let moves = []
-    for (let actualItem of actual) {
-        moves.push({item: actualItem.item, to: actualItem.location, from: {chest_type: types.ChestType.Station, chest: 0, slot: 0, shulker_slot: null}, count: actualItem.count})
-    }
-    // don't move_items just apply the move to the database
-    await apply_moves(moves)
-
-
-}
+    The second path involves depositing items after first obtaining a quote for the
+    items in the station. If the deposit flag is set to false, the program will wait
+    for user confirmation before proceeding. Once confirmation is received, the
+    program will call the first method with the deposit flag set to true.
+*/
 
 export async function list(): Promise<{item: types.Item, count: number}[]> {
-    const items = await get_summary()
-    return items
+    const inventory = await get_inventory()
+
+    const groupedItems = inventory.filter(x => !x.item.name.endsWith("shulker_box")).reduce((acc: any, x) => {
+        const existing = acc.find((y:any) => y.item.id === x.item.id);
+        if (existing) {
+          existing.count += x.count;
+        } else {
+          acc.push({
+            item: {
+              id: x.item.id,
+              name: x.item.name,
+              metadata: x.item.metadata,
+              nbt: x.item.nbt,
+              display_name: x.item.display_name,
+              stack_size: x.item.stack_size,
+            },
+            count: x.count,
+          });
+        }
+        return acc;
+      }, []);
+
+    return groupedItems
 }
 
 export async function withdraw(items: {item: types.Item, count: number}[], station: number) {
-    const inventory = await get_items();
+    const inventory = await get_inventory();
 
-    let moves = _select_items_to_withdraw(items, inventory, station)
+    let selectedItems = select_items_to_withdraw(items, inventory)
+    let moves = select_spaces_to_withdraw_items(selectedItems, station)
+    const id = db.add_job(types.JobType.Move, moves)
 
-    await actions.move_items(moves)
+    return id
+}
 
-    await apply_moves(moves)
+export async function quote(station: number, verified: boolean): Promise<number> {
+    const chest = {chest_type: types.ChestType.Station, chest: station, deposit: verified}
+    const id = db.add_job(types.JobType.Survey, chest)
+
+    return id
+}
+
+export async function deposit(items: types.ItemLocation[]): Promise<number> { 
+    console.log(items)
+    await db.get_item_ids(items.map((i: any) => i.item))
+
+    const inventory = await get_inventory()
+    const moves = select_spaces_to_place_items(items, inventory)
+
+    const id = db.add_job(types.JobType.Move, moves)
+
+    return id
+}
+
+async function get_inventory(): Promise<types.ItemLocation[]> {
+    // Get the future inventory state
+
+    const inventory = await db.get_items()
+    let queue = await db.get_queue()
+
+    queue = queue.filter( x => x.status === types.JobStatus.Queued || x.status === types.JobStatus.InProgress)
+
+    for (const job of queue) {
+        switch (job.type) {
+            case types.JobType.Move:
+                const moves = job.parameters;
+                _apply_moves(types.ChestType.Inventory, inventory, moves)
+                break;
+        }
+    }
+    
+    return inventory
 }
 
 
-export async function deposit(station: number) {
-    let items = await actions.get_chest_contents(types.ChestType.Station, station)
-
-    await get_item_ids(items.map((i: any) => i.item))
-
-    const inventory = await get_items()
-    const moves = _select_spaces_to_place_items(items, inventory, station)
-
-    await actions.move_items(moves)
-    await apply_moves(moves)
-
-}
-
-
-export async function quote(station: number): Promise<{item: types.Item, count: number}[]> {
-    let items = await actions.get_chest_contents(types.ChestType.Station, station)
-
-    await get_item_ids(items.map((i: any) => i.item))
-
-    return items.map( (x: any) => {return {item: x.item, count: x.count}})
-}
-
-function _select_items_to_withdraw(items: {item: types.Item, count: number}[], inventory: types.ItemLocation[], station: number): {item: types.Item, from: types.Location, to: types.Location, count: number}[] {
-    let move_items: {item: types.Item, from: types.Location, to: types.Location, count: number}[] = [];
+function select_items_to_withdraw(items: {item: types.Item, count: number}[], inventory: types.ItemLocation[]): types.ItemLocation[] {
+    let selectedItems: types.ItemLocation[] = [];
     
     let open_slot = 0
 
-    for (let item of items) {
+    for (const { item, count } of items) {
+        let remainingCount = count
+        
+        // First if there are any shulkers with the item, take those
+        let shulker_count = Math.floor(count / ( 27 * item.stack_size ) )
+        let fullShulkers = getFullShulkers(inventory).filter( x => x.inner_item.id === item.id)
 
-        let count = item.count;
+        for (const shulker of fullShulkers) {
+            if (remainingCount <= 27 * item.stack_size) break;
 
-        // Handle full shuklers
-        let shulker_count = Math.floor(count / ( 27 * item.item.stack_size ) )
-        let full_shulkers = _find_full_shulkers(inventory).filter( x => x.inner_item.id === item.item.id)
+            selectedItems.push({"item": shulker.item, "location": shulker.location, "count": 1,})
 
-        while(shulker_count > 0 && full_shulkers.length > 0) {
-            let shulker = full_shulkers.pop()!
-
-            move_items.push({
-                "item": shulker.item,
-                "from": shulker.location,
-                "to": { "chest_type": types.ChestType.Station, "chest": station, "slot": open_slot, "shulker_slot": null},
-                "count": 1,
-            })
-
-            // move shulker contents to station chest
-            let shulker_contents = _find_shulker_contents(inventory, shulker.location)
-            shulker_contents.forEach( shulker_item => {
-                move_items.push({
+            // move shulker contents to with it's shulker above to station chest
+            _find_shulker_contents(inventory, shulker.location).forEach( shulker_item => {
+                selectedItems.push({
                     "item": shulker_item.item,
-                    "from": shulker_item.location,
-                    "to": { "chest_type": types.ChestType.Station, "chest": station, "slot": open_slot, "shulker_slot": shulker_item.location.shulker_slot},
+                    "location": shulker_item.location,
                     "count": shulker_item.count,
                 })
             })
 
-            shulker_count -= 1
-            count -= 27 * item.item.stack_size
-            open_slot += 1
+            remainingCount -= 27 * item.stack_size           
 
-            // remove item from inventory
+            // remove item from inventory to not accidentally select it again
             inventory = inventory.filter( x => x.location.chest !== shulker.location.chest && x.location.slot !== shulker.location.slot )
-        
         }
 
-        if (count === 0) {
-            continue;
-        }
-
-        let item_inventory = inventory.filter( inv_item => item.item.id === inv_item.item.id )
-
-
+        // Second from the inventory, prefer not in a shulker box
         // Sort where shulker slots are null first
-        item_inventory.sort( (a, b) => {
-            if (a.location.shulker_slot === null && b.location.shulker_slot !== null) {
-                return -1
-            } else if (a.location.shulker_slot !== null && b.location.shulker_slot === null) {
-                return 1
-            } else {
-                return 0
-            }
-        })
+        let matchingItems = inventory.filter( inv_item => item.id === inv_item.item.id )
+                                     .sort( (a, b) => {
+                                        if (a.location.shulker_slot === null && b.location.shulker_slot !== null) {
+                                            return -1
+                                        } else if (a.location.shulker_slot !== null && b.location.shulker_slot === null) {
+                                            return 1
+                                        } else {
+                                            return 0
+                                        }
+                                     })
 
         // Loop through until we have enough
-        for( let inv_item of item_inventory) {
+        for( let matchingItem of matchingItems) {
+            if (remainingCount === 0) {
+                break;
+            }
 
             // If we have more than we need, just take what we need
-            if (inv_item.count > count) {
-                move_items.push({
-                    "item": inv_item.item,
-                    "from": inv_item.location,
-                    "to": { "chest_type": types.ChestType.Station, "chest": station, "slot": open_slot, "shulker_slot": null},
-                    "count": count,
+            if (matchingItem.count > remainingCount) {
+                selectedItems.push({
+                    "item": matchingItem.item,
+                    "location": matchingItem.location,
+                    "count": remainingCount,
                 })
 
                 open_slot += 1
                 break;
             }
 
-            move_items.push({
-                "item": inv_item.item,
-                "from": inv_item.location,
-                "to": { "chest_type": types.ChestType.Station, "chest": station, "slot": open_slot, "shulker_slot": null},
-                "count": inv_item.count,
+            selectedItems.push({
+                "item": matchingItem.item,
+                "location": matchingItem.location,
+                "count": matchingItem.count,
             })
 
-            count -= inv_item.count
+            remainingCount -= matchingItem.count
 
-            if (count === 0) {
-                break;
-            }
-
-            open_slot += 1
         }
     }
 
-    return move_items
+    return selectedItems
+
+}
+
+function select_spaces_to_withdraw_items(items_to_move: types.ItemLocation[], station: number): types.MoveItem[] {
+    let result: types.MoveItem[] = []
+
+    items_to_move
+        .filter(item => item.location.shulker_slot == null)
+        .forEach((item) => {
+            result.push({
+                "item": item.item,
+                "from": item.location,
+                "to": { chest_type: types.ChestType.Station, chest: station, slot: globalThis.openSlot, shulker_slot: null },
+                "count": item.count
+            })
+
+            // Find and move any items stored in a container within the same slot
+            items_to_move
+                .filter(shulker_item => shulker_item.location.shulker_slot != null && shulker_item.location.slot === item.location.slot)
+                .forEach(shulker_item => {
+                    result.push({
+                        "item": shulker_item.item,
+                        "from": shulker_item.location,
+                        "to": { chest_type: types.ChestType.Station, chest: station, slot: globalThis.openSlot, "shulker_slot": shulker_item.location.shulker_slot },
+                        "count": shulker_item.count
+                    })
+                })
+            
+            if (globalThis.openSlot >= 53) {
+                globalThis.openSlot = 0
+            } else {
+                globalThis.openSlot += 1
+            }
+        })
+
+
+
+    return result
 
 }
 
 
-function _select_spaces_to_place_items(items_to_move: types.ItemLocation[], inventory: types.ItemLocation[], station: number) {
+function select_spaces_to_place_items(items_to_move: types.ItemLocation[], inventory: types.ItemLocation[]): types.MoveItem[] {
     let result: any = [];
 
-    let open_slots_list = get_open_slots(inventory)
+    let open_slots_list = get_open_slots(inventory, 324)
 
     items_to_move
         .filter(item => item.location.shulker_slot == null)
@@ -201,12 +244,10 @@ function _select_spaces_to_place_items(items_to_move: types.ItemLocation[], inve
 
 }
 
-function get_open_slots(inventory: types.ItemLocation[]): types.Location[] {
-    const counts = actions.get_counts()
-
+function get_open_slots(inventory: types.ItemLocation[], chest_count: number): types.Location[] {
     let result: any = []
 
-    for(let chest_index = 0; chest_index < counts.inventory; chest_index++) {
+    for(let chest_index = 0; chest_index < chest_count; chest_index++) {
         for(let slot_index = 0; slot_index < 54; slot_index++) {
             const is_occupied = inventory.some(item => (item.location.chest === chest_index) && (item.location.slot === slot_index))
 
@@ -228,9 +269,12 @@ function _score(inventory: types.ItemLocation[]): number {
     /*
     Gives a score to the current inventory state. The higher the score, the better the inventory state.
     
-    Shulker utilization: You want to prioritize shulkers that are full with one type of item, as this maximizes the use of each shulker and reduces the overall number of shulkers needed.
-    Slot utilization: You want to minimize the overall number of slots needed, as this reduces the physical space required for the storage system.
-    Retrieval time: You want to balance the above factors with the time it takes to retrieve an item from a shulker. Retrieving an item from a shulker that is full with one type of item may be faster than retrieving an item from a shulker with a mix of items.    
+    Shulker utilization: You want to prioritize shulkers that are full with one type of item, as this 
+    maximizes the use of each shulker and reduces the overall number of shulkers needed.
+    Slot utilization: You want to minimize the overall number of slots needed, as this reduces the 
+    physical space required for the storage system.
+    Retrieval time: You want to balance the above factors with the time it takes to retrieve an item from a shulker. 
+    Retrieving an item from a shulker that is full with one type of item may be faster than retrieving an item from a shulker with a mix of items.    
     */
 
     const shulker_utilization_weight = 1
@@ -239,7 +283,7 @@ function _score(inventory: types.ItemLocation[]): number {
 
     // Shulker utilization
     const shulker_count = inventory.filter(item => item.item.name.endsWith("shulker_box")).length
-    const full_shulker_count = _find_full_shulkers(inventory).length
+    const full_shulker_count = getFullShulkers(inventory).length
     const shulker_utilization = full_shulker_count / shulker_count
 
     // Slot utilization
@@ -260,7 +304,7 @@ function _score(inventory: types.ItemLocation[]): number {
     return shulker_utilization_weight * shulker_utilization + slot_utilization_weight * slot_utilization - retrieval_time_weight * average_unique_items
 }
 
-function _find_full_shulkers(inventory: types.ItemLocation[]): {item: types.Item, location: types.Location, inner_item: types.Item}[] {
+function getFullShulkers(inventory: types.ItemLocation[]): {item: types.Item, location: types.Location, inner_item: types.Item}[] {
     const fullShulkers = [];
     for (const {item, location, count} of inventory) {
       if (item.name.endsWith("shulker_box")) {
@@ -291,4 +335,49 @@ function _find_shulker_contents(inventory: types.ItemLocation[], shulker_locatio
         location.slot == shulker_location.slot &&
         location.shulker_slot != null
     )
+}
+
+
+export function _apply_moves(chest_type: types.ChestType, inventory: types.ItemLocation[], moves: types.MoveItem[]) {
+    // Implicit returns inventory variable with inventory state after applying the moves
+    // This must match db.apply_moves()
+
+    for (const move of moves) {
+
+        const fromLocationIndex = inventory.findIndex(
+            (loc) =>
+              loc.location.chest_type === move.from.chest_type &&
+              loc.location.chest === move.from.chest &&
+              loc.location.slot === move.from.slot &&
+              loc.location.shulker_slot === move.from.shulker_slot
+        );
+        
+
+        if (fromLocationIndex !== -1) {
+            inventory[fromLocationIndex].count -= move.count;
+            if (inventory[fromLocationIndex].count <= 0) {
+              inventory.splice(fromLocationIndex, 1);
+            }
+        }
+
+        const toLocationIndex = inventory.findIndex(
+            (loc) =>
+              loc.location.chest_type === move.to.chest_type &&
+              loc.location.chest === move.to.chest &&
+              loc.location.slot === move.to.slot &&
+              loc.location.shulker_slot === move.to.shulker_slot
+          );
+        
+        if (toLocationIndex !== -1) {
+            inventory[toLocationIndex].count += move.count;
+        } else if (move.to.chest_type === chest_type) {
+            inventory.push({
+                item: move.item,
+                location: move.to,
+                count: move.count,
+            });
+        }
+
+    }
+
 }

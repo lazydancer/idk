@@ -1,7 +1,6 @@
 <script>
     import List from './List.svelte';
     
-    export let navigateTo;
     let items = [];
   
     async function quote() {
@@ -25,10 +24,8 @@
 
 </script>
   
-
-<button class="bg-red-700 hover:bg-red-900 text-white py-1 px-3 border-transparent my-6" on:click={() => quote()}>List</button>
+<!-- <button class="bg-red-700 hover:bg-red-900 text-white py-1 px-3 border-transparent my-6" on:click={() => quote()}>List</button> -->
 <button class="bg-red-700 hover:bg-red-900 text-white py-1 px-3 border-transparent my-6" on:click={() => deposit()}>Deposit</button>
 
 <List items={items} />
 
-  

@@ -2,57 +2,27 @@ const mineflayer = require('mineflayer')
 const vec3 = require('vec3')
 
 import * as types from './types'
+import { loadConfig } from './config'
 
-
-let offline_config = {
-	"host": "localhost",
-	"port": 25565,
-	"location": [15, 83, 130],
-}
-
-let online_config = {
-	"host": "play.ecc.eco",
-	"port": 25565,
-	"location": [-5327, 300, 6903],
-}
-
-let config = offline_config
-
-let BUILD = {
-	location: config['location'],
-	width: 4,
-	depth: 12,
-	map: [[0,0]],
-	// facing: [0,0,1],
-}
-
-const walkway = [...Array(3*BUILD['width']).keys()].map(x => 
-	[BUILD['location'][0] + 3 +x, 
-	 BUILD['location'][2] - 2]
-)
-const rows = [...Array(BUILD['width']).keys()].map(w => 
-	 [...Array(BUILD['depth']).keys()].map(d => 
-		[BUILD['location'][0] + (3+3*w), 
-		 BUILD['location'][2] - (d+3)]
-	)
-).flat()
-BUILD["map"] = walkway.concat(rows).sort()
+const config = loadConfig()
 
 export class Player {
     bot: any
     open_container: any
 	shulker_location: any // When opening a shulker need to store location of where to place it back when closing it
+	map: any // map of all valid locations to move to
 
 	constructor() {
 		this.bot = mineflayer.createBot({
-				host: config['host'],
-				port: config['port'],
-				username: process.env['MC_EMAIL'],
-				password: process.env['MC_PASS'],
+				host: config.minecraft.host,
+				port: config.minecraft.port,
+				username: config.minecraft.email,
+				password: config.minecraft.password,
 				auth: 'microsoft' 
 			})
 		this.open_container = null
 		this.shulker_location = null
+		this.map = this.build_map()
 	}
 
 	async open(chest_type: types.ChestType, chest: number)  {
@@ -130,7 +100,7 @@ export class Player {
 		let open_place: any[] = [];
 		for(const loc of [[1,0], [-1,0], [0,1], [0,-1]]) {
 			let place = [player_position[0] + loc[0], player_position[1] + loc[1]]
-			for (const m of BUILD["map"]) {
+			for (const m of this.map) {
 				if(m[0] == place[0] && m[1] == place[1]) {
 					open_place = place 
 					break;
@@ -149,13 +119,13 @@ export class Player {
 		await this.bot.setQuickBarSlot(0)
 
 		// place shulker
-		await this.bot.placeBlock(this.bot.blockAt(vec3(open_place[0], BUILD["location"][1]-1, open_place[1])), vec3(0,1,0))
+		await this.bot.placeBlock(this.bot.blockAt(vec3(open_place[0], config.build.location[1]-1, open_place[1])), vec3(0,1,0))
 
 		await new Promise(r => setTimeout(r, 100));
 
 
 		// open
-		let block = await this.bot.blockAt(vec3(open_place[0], BUILD["location"][1], open_place[1]))
+		let block = await this.bot.blockAt(vec3(open_place[0], config.build.location[1], open_place[1]))
 		let window = await this.bot.openContainer(block)
 
 		this.shulker_location = [chest, chest_type, slot, window, block]		
@@ -194,7 +164,6 @@ export class Player {
 
 		await new Promise(r => setTimeout(r, 1000));
 
-
 		// Return shulker to chest
 		await this.open(chest_type, chest)
 		await new Promise(r => setTimeout(r, 1000));
@@ -212,8 +181,8 @@ export class Player {
 	}
 
 	async move_to_ready() {
-		const x = BUILD['location'][0] + 5
-		const z = BUILD['location'][2] - 2
+		const x = config.build.location[0] + 5
+		const z = config.build.location[2] - 2
 		await this.move([x, z])
 	}
 
@@ -240,8 +209,6 @@ export class Player {
 				}
 
 			}
-
-
 		}
 
 		const includesArray = (data: any, arr :any) => {
@@ -270,7 +237,7 @@ export class Player {
 		}
 
 		const move_line = async (x :any, z :any) =>  {
-			let position = vec3(x + 0.5, BUILD['location'][1], z + 0.5)
+			let position = vec3(x + 0.5, config.build.location[1], z + 0.5)
 
 			await this.bot.lookAt(position, true);
 			this.bot.setControlState('forward', true);
@@ -301,15 +268,15 @@ export class Player {
 			return "done"
 		}
 
-		if (!includesArray(BUILD["map"], player_position)) {
+		if (!includesArray(this.map, player_position)) {
 			throw Error("player not on map")
 		}
 
-		if (!includesArray(BUILD["map"], [x,z])) {
+		if (!includesArray(this.map, [x,z])) {
 			throw Error("destination not on map")
 		}
 
-		let path = pathfind(player_position, [x, z], BUILD["map"])
+		let path = pathfind(player_position, [x, z], this.map)
 		let s_path = straighten_path(path)
 		s_path.shift() // remove first
 
@@ -321,55 +288,22 @@ export class Player {
 		return "done";
 	}
 
-	private log(chest_type: types.ChestType, chest: number) {
-		let slots = this.open_container.containerItems();	
-
-		let r = slots.map((o: any) => ({
-				item: { 
-					id: 0, 
-					name: o.name, 
-					metadata: o.metadata, 
-					nbt: o.nbt, 
-					display_name: o.displayName, 
-					stack_size: o.stackSize,
-				},
-				location: { 
-					chest_type, 
-					chest: chest, 
-					slot: o.slot, 
-					shulker_slot: null,
-				},
-				count: o.count,
-		}));
-		return r
-
-	}
-
-	get_counts() {
-
-		return {
-			'inventory': BUILD['width'] * BUILD['depth'] * 6,
-			'station': 3,
-		}
-
-	}
-
 	private chest_to_location(chest_type: types.ChestType, chest_number: number): any {
 
 		if(chest_type == types.ChestType.Inventory) {
 
-			const offset = [BUILD['location'][0] + 2, BUILD['location'][1], BUILD['location'][2] - 3]
+			const offset = [config.build.location[0] + 2, config.build.location[1], config.build.location[2] - 3]
 
-			const x = Math.floor(chest_number / (6*BUILD['depth'])) * 3
+			const x = Math.floor(chest_number / (6*config.build.depth)) * 3
 			const y = chest_number % 6
-			const z = -1*(Math.floor(chest_number / 6 ) % BUILD['depth'])
+			const z = -1*(Math.floor(chest_number / 6 ) % config.build.depth)
 
 			return vec3(x + offset[0], y + offset[1], z + offset[2])
 
 		}
 
 		if (chest_type == types.ChestType.Station) {
-			return vec3(BUILD['location'][0] + 5 + 2*chest_number, BUILD['location'][1], BUILD['location'][2] - 1)
+			return vec3(config.build.location[0] + 5 + 2*chest_number, config.build.location[1], config.build.location[2] - 1)
 		}
 
 	}
@@ -377,20 +311,32 @@ export class Player {
 	private standing_location(chest_type: types.ChestType, chest_number: number): any {
 
 		if(chest_type == types.ChestType.Inventory) {
-			const offset = [BUILD['location'][0] + 2, BUILD['location'][1], BUILD['location'][2] - 3]
+			const offset = [config.build.location[0] + 2, config.build.location[1], config.build.location[2] - 3]
 
-			const x = Math.floor(chest_number / (6*BUILD['depth'])) * 3
-			const z = -1*(Math.floor(chest_number / 6 ) % BUILD['depth'])
+			const x = Math.floor(chest_number / (6*config.build.depth)) * 3
+			const z = -1*(Math.floor(chest_number / 6 ) % config.build.depth)
 
 			return [x + offset[0] + 1, z + offset[2]]
 		}
 
 		if (chest_type == types.ChestType.Station) {
-			return [BUILD['location'][0] + 5 + 2*chest_number, BUILD['location'][2] - 2]
+			return [config.build.location[0] + 5 + 2*chest_number, config.build.location[2] - 2]
 		}
 	}
 
+	private build_map(): any {
+		const walkway = [...Array(3*config.build.width).keys()].map(x => 
+		[config.build.location[0] + 3 +x, 
+			config.build.location[2] - 2]
+		)
+		const rows = [...Array(config.build.width).keys()].map(w => 
+			[...Array(config.build.depth).keys()].map(d => 
+			[config.build.location[0] + (3+3*w), 
+				config.build.location[2] - (d+3)]
+		)
+		).flat()
 
-
+		return walkway.concat(rows).sort()
+	}
 
 }
