@@ -38,21 +38,32 @@
 
 </script>
 
-<button class="bg-red-700 hover:bg-red-900 text-white py-1 px-3 border-transparent my-6" on:click={() => quote()} disabled={isQuoteInQueue}>
+<button class="relative bg-red-700 hover:bg-red-900 text-white py-1 px-3 border-transparent my-6" on:click={() => quote()}>
+  Quote
   {#if isQuoteInQueue}
-    <span class="flex items-center">
-      <svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm12 0a8 8 0 100-16v3a5 5 0 015 5h3zM4 12a8 8 0 018 8v4a8 8 0 01-8-8z"></path>
-      </svg>
-      Loading...
-    </span>
-  {:else}
-    List
+    <div class="absolute inset-0 bg-white opacity-75 flex items-center justify-center">
+      <div class="loader"></div>
+    </div>
   {/if}
+
 </button>
   
 <button class="bg-red-700 hover:bg-red-900 text-white py-1 px-3 border-transparent my-6" on:click={() => deposit()}>Deposit</button>
 
 <List items={items} />
 
+<style>
+  .loader {
+  border: 4px solid rgba(0, 0, 0, 0.2);
+  border-top: 4px solid #ffffff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>

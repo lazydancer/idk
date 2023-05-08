@@ -22,7 +22,6 @@ export class Worker {
                 switch (job.type) {
                     case types.JobType.Move:
                         const moves = job.parameters;
-                        console.log(moves);
 
                         await actions.move(this.player, moves);
                         await db.apply_moves(moves)
@@ -49,9 +48,11 @@ export class Worker {
                 console.log(error);
                 db.change_job_status(job.id, 'failed');
             }
-        }   
 
-        setTimeout(() => this.work(), 1000);
+            this.work();
+        }  else {
+            setTimeout(() => this.work(), 1000);
+        }
 
     }
 

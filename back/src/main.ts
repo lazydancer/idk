@@ -22,7 +22,8 @@ globalThis.openSlot = 0
 async function main() {
 
   const worker = new Worker()
-  worker.work()
+  // Give it 5 seconds to start up before it starts working
+  setTimeout(() => worker.work(), 5000);
   
   app.use(cors())
   app.use(express.json())
@@ -40,11 +41,11 @@ async function main() {
 
   app.post('/api/order', async function (req: Request, res: Response) {
     await inventory.withdraw(req.body, 0)
+    res.send({'status': 'ok'})
   })
 
   app.get('/api/quote/:station', async function (req: Request, res: Response) {
     const job_id = await inventory.quote(parseInt(req.params.station), false)
-    console.log(job_id)
     res.send({'job_id': job_id})
   })
 
@@ -60,6 +61,7 @@ async function main() {
 
   app.post('/api/deposit', async function (req: Request, res: Response) {
     await inventory.quote(req.body['station'], true)
+    res.send({'status': 'ok'})
   })
 
   if (process.argv.length > 2) {

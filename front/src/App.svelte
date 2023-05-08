@@ -38,19 +38,14 @@
       </Link>
       <nav class="flex">
         <ul class="flex flex-row">
-          <Link to="/">Inventory</Link>
+          <Link class="pr-4" to="/">Inventory</Link>
           <Link to="/deposit">Deposit</Link>
         </ul>
       </nav>
     </div>
   </header>
 
-    <nav>
-      <Link to="/">Inventory</Link>
-      <Link to="/deposit">Deposit</Link>
-    </nav>
-
-    <main class="pt-20 pb-8 mx-8">
+  <main class="pt-20 pb-8 mx-8">
 
     <Route path="/" component="{InventoryPage}" />
     <Route path="/deposit" component="{DepositPage}" />
@@ -74,5 +69,9 @@
 
   button {
     border: 0;
+  }
+
+  a:visited {
+    color: rgb(17 24 39);
   }
 </style>

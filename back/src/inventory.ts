@@ -44,7 +44,6 @@ export async function quote(station: number, verified: boolean): Promise<number>
 }
 
 export async function deposit(items: types.ItemLocation[]): Promise<number> { 
-    console.log(items)
     await db.get_item_ids(items.map((i: any) => i.item))
 
     const inventory = await get_inventory()
@@ -57,7 +56,6 @@ export async function deposit(items: types.ItemLocation[]): Promise<number> {
 
 export async function get_survey(job_id: number): Promise<{item: types.Item, count: number}[]> {
     const inventory = await db.get_survey(job_id)
-    console.log(inventory)
     return summarize(inventory)
 }
 
@@ -80,6 +78,44 @@ async function get_inventory(): Promise<types.ItemLocation[]> {
     
     return inventory
 }
+
+
+// export async function take_inventory() {
+//     /* 
+//         A function which reviews the entire inventory and compares it to the database.
+//         It will print out any descrepancies between the two.
+//         Will await till the inventory is fully loaded before returning
+//     */
+
+    
+
+//     // for(let i = 0; i< INVENTORY_SIZE; i++) {
+    
+//     const job_id = await db.add_job(types.JobType.Survey, {chest_type: types.ChestType.Inventory, chest: 0})
+
+//     // }
+
+
+//     const checkJobStatus: any = async (jobId: number) => {
+//         const job = await db.get_job(jobId)
+//         if (job.status === types.JobStatus.Completed) {
+
+
+
+//             return job
+//         }
+        
+//         await new Promise(r => setTimeout(r, 1000));
+//         return await checkJobStatus(jobId)
+//     }
+
+
+
+//     const job = await checkJobStatus(job_id)
+
+
+
+// }
 
 function summarize(inventory: types.ItemLocation[]): {item: types.Item, count: number}[] {
     return inventory.filter(x => !x.item.name.endsWith("shulker_box")).reduce((acc: any, x) => {
@@ -177,6 +213,8 @@ function select_items_to_withdraw(items: {item: types.Item, count: number}[], in
         }
     }
 
+    console.log(selectedItems)
+
     return selectedItems
 
 }
@@ -184,6 +222,9 @@ function select_items_to_withdraw(items: {item: types.Item, count: number}[], in
 function select_spaces_to_withdraw_items(items_to_move: types.ItemLocation[], station: number): types.MoveItem[] {
     let result: types.MoveItem[] = []
 
+    let moved: types.ItemLocation[] = []
+
+    // move items not in shulker boxes first and items moving with shulker boxes first
     items_to_move
         .filter(item => item.location.shulker_slot == null)
         .forEach((item) => {
@@ -193,6 +234,8 @@ function select_spaces_to_withdraw_items(items_to_move: types.ItemLocation[], st
                 "to": { chest_type: types.ChestType.Station, chest: station, slot: globalThis.openSlot, shulker_slot: null },
                 "count": item.count
             })
+
+            moved.push(item)
 
             // Find and move any items stored in a container within the same slot
             items_to_move
@@ -204,7 +247,9 @@ function select_spaces_to_withdraw_items(items_to_move: types.ItemLocation[], st
                         "to": { chest_type: types.ChestType.Station, chest: station, slot: globalThis.openSlot, "shulker_slot": shulker_item.location.shulker_slot },
                         "count": shulker_item.count
                     })
+                    moved.push(shulker_item)
                 })
+                
             
             if (globalThis.openSlot >= 53) {
                 globalThis.openSlot = 0
@@ -213,7 +258,30 @@ function select_spaces_to_withdraw_items(items_to_move: types.ItemLocation[], st
             }
         })
 
+    // move items from within shulker boxes
+    items_to_move = items_to_move.filter(item => !moved.includes(item))
+    items_to_move.forEach((item) => {
+        result.push({
+            "item": item.item,
+            "from": item.location,
+            "to": { chest_type: types.ChestType.Station, chest: station, slot: globalThis.openSlot, shulker_slot: null },
+            "count": item.count
+        })
+        moved.push(item)
+    
+        if (globalThis.openSlot >= 53) {
+            globalThis.openSlot = 0
+        } else {
+            globalThis.openSlot += 1
+        }
+    })
 
+    items_to_move = items_to_move.filter(item => !moved.includes(item))
+
+    if (items_to_move.length > 0) {
+        console.log("ERROR: Some items were not moved")
+        console.log(items_to_move)
+    }
 
     return result
 
@@ -234,7 +302,8 @@ function select_spaces_to_place_items(items_to_move: types.ItemLocation[], inven
                 "to": open_slots_list[i],
                 "count": item.count
             })
-    
+            
+
             // Find and move any items stored in a container within the same slot
             items_to_move
                 .filter(shulker_item => shulker_item.location.shulker_slot != null && shulker_item.location.slot === item.location.slot)
