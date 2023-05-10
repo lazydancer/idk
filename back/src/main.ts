@@ -65,6 +65,9 @@ async function main() {
   })
 
   if (process.argv.length > 2) {
+    if (process.argv[2] == "inventory") {
+      await inventory.take_inventory()
+    }
     if (process.argv[2] == "init") {
       await init_tables()
     }
