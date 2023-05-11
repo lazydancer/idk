@@ -32,7 +32,6 @@ async function main() {
   app.use(authenticate)
 
   app.post('/api/login', async function (req: AuthenticatedRequest, res: Response) {
-    console.log("login request", req.body)
     res.send({userId: req.userId, token: req.token})
   })
 
@@ -44,7 +43,17 @@ async function main() {
   app.get('/api/item/:item_id', async function (req: AuthenticatedRequest, res: Response) {
     const items = await inventory.list()
     const item = items.find( (x:any) => x.item.id == req.params.item_id)
-    res.send(item)
+
+    // get item history
+    const history = await db.get_item_history(parseInt(req.params.item_id, 10))
+
+    const result = {
+      item: item?.item,
+      count: item?.count,
+      history: history,
+    }
+
+    res.send(result)
   })
 
   app.get('/api/station', async function (req: AuthenticatedRequest, res: Response) {
@@ -101,16 +110,11 @@ interface AuthenticatedRequest extends Request {
 const authenticate = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const token = req.headers.authorization
 
-  console.log("reciegvied token", token)
-
   if (!token) {
     return res.status(401).send({ error: 'No credentials sent!' });
   }
 
   const user = await db.verify(token)
-
-  console.log("verify token", user)
-
 
   if (!user) {
     return res.status(401).send({ error: 'Invalid credentials!' });
