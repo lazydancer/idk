@@ -13,7 +13,6 @@
   
     async function quote() {
         isQuoteInQueue = true;
-        console.log("reqeuest quote from api")
         const { job_id } = await authFetch(`http://localhost:8000/api/quote/${0}`)
 
         let status = await getJobStatus(job_id);

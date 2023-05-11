@@ -120,6 +120,18 @@ export async function get_item_ids(items: types.Item[]): Promise<void> {
 
 }
 
+export async function get_item_history(item_id: number): Promise<{volume: number, date: Date}[]> {
+        const history = await pool.query("SELECT * FROM inventory_history WHERE item_id=$1", [item_id])
+
+        return history.rows.map( x => (
+            {
+                volume: parseInt(x.count, 10),
+                date: new Date(x.event_date),
+            }
+        ))
+
+}
+
 export async function apply_moves(moves: types.MoveItem[]): Promise<any> {
 
     for (const move of moves) {

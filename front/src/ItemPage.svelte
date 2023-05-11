@@ -14,35 +14,56 @@
       metadata: 0,
       nbt: null,
     },
-    count: 0
+    count: 0,
+    history: []
   };
+
+
+  let data = {
+    labels: item.history.map(v => v.date),
+    datasets: [
+      {
+        data: item.history.map(v => v.volume),
+        borderColor: "#c53030",
+      }
+    ],
+  };
+
 
   import { onMount } from 'svelte';
 
 
   onMount(async () => {
     item = await authFetch(`http://localhost:8000/api/item/${item_id}`);
+        
+    data = {
+      labels: item.history.map(v => v.date),
+      datasets: [
+        {
+          data: item.history.map(v => v.volume),
+          borderColor: "#c53030",
+        }
+      ],
+    };
   });
 
 
-  const itemData = [
-    { date: "2022-01-01", volume: 10 },
-    { date: "2022-01-02", volume: 8 },
-    { date: "2022-01-03", volume: 12 },
-    { date: "2022-01-04", volume: 15 },
-    { date: "2022-01-05", volume: 11 },
-    { date: "2022-01-06", volume: 9 }
-  ];
 
-  const data = {
-    labels: itemData.map(v => v.date),
-    datasets: [
-      {
-        data: itemData.map(v => v.volume),
-        borderColor: "#c53030",
+
+
+  const options = {
+    plugins: {
+      legend: {
+        display: false
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true
       }
-    ],
-  };
+    }
+  }
+
 
 
   async function withdraw(count) {
@@ -58,18 +79,6 @@
     })
   }
 
-  const options = {
-    plugins: {
-      legend: {
-        display: false
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true
-      }
-    }
-  }
 
 
 </script>

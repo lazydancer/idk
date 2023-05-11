@@ -14,7 +14,6 @@
     
     if (response.ok) {
       const res = await response.json();
-      console.log(res)
     //   const { userId, sessionId } = await response.json();
     //   const sessionData = { userId };
     //   const encodedSessionData = btoa(JSON.stringify(sessionData));

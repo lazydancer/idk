@@ -12,8 +12,6 @@ export async function authFetch(url, options = {}) {
 
   const response = await fetch(url, options);
 
-  console.log(response)
-
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
