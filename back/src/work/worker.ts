@@ -1,7 +1,7 @@
-import * as db from './db'
+import * as db from '../model/db'
 import * as actions from './actions'
-import * as types from './types'
-import * as inventory from './inventory';
+import * as types from '../types/types'
+import * as inventory from '../inventory/inventory';
 
 
 import { Player } from './player'

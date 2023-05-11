@@ -1,4 +1,4 @@
-import * as types from './types'
+import * as types from '../types/types'
 
 
 export async function move(player: any, requests: types.MoveItem[]) {

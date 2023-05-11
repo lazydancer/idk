@@ -1,10 +1,10 @@
 const mineflayer = require('mineflayer')
 const vec3 = require('vec3')
 
-import * as types from './types'
-import { loadConfig } from './config'
+import * as types from '../types/types'
+import { load_config } from '../types/config'
 
-const config = loadConfig()
+const config = load_config()
 
 export class Player {
     bot: any

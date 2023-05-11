@@ -1,26 +1,16 @@
-import * as db from './db'
-import * as types from './types'
+import * as db from '../model/db'
+import * as types from '../types/types'
+import * as helper from './helper'
+import * as item_helper from './item'
 
 /*
     Inventory is responsible for managing the inventory by tracking the
     locations of items within it. It provides functions for withdrawing and
     depositing items.
-
-    When withdrawing items, there is only one path to follow. However, when
-    depositing items, there are two paths to choose from.
-
-    The first path involves depositing items to a station with just a station number.
-    In this case, the worker calls the "move" function if the deposit flag is set to
-    true.
-
-    The second path involves depositing items after first obtaining a quote for the
-    items in the station. If the deposit flag is set to false, the program will wait
-    for user confirmation before proceeding. Once confirmation is received, the
-    program will call the first method with the deposit flag set to true.
 */
 
-import { loadConfig } from './config'
-const config = loadConfig()
+import { load_config } from '../types/config'
+const config = load_config()
 
 const INVENTORY_SIZE = config.build.depth * config.build.width * 6
 
@@ -28,6 +18,13 @@ export async function list(): Promise<{item: types.Item, count: number}[]> {
     const inventory = await get_inventory()
     return summarize(inventory)
 }
+
+export async function item(item_id: number): Promise<{item: types.Item, count: number, history: any }> {
+    const inventory = await get_inventory()
+    const item_info = inventory.find( (x:any) => x.item.id == item_id)
+    return await item_helper.summarize(item_info)
+}
+
 
 export async function withdraw(items: {item: types.Item, count: number}[], station: number) {
     const inventory = await get_inventory();
@@ -64,56 +61,7 @@ export async function get_survey(job_id: number): Promise<{item: types.Item, cou
     return summarize(inventory)
 }
 
-export async function take_inventory() {
-    
-    const inventory = await db.get_items()
 
-    const checkJobStatus: any = async (jobId: number) => {
-        const job = await db.get_job(jobId)
-        if (job.status === types.JobStatus.Completed) {
-            const surveyContents = await db.get_survey(jobId)
-            
-            const chestContents = inventory.filter( x => x.location.chest === job.parameters.chest && x.location.chest_type === job.parameters.chest_type)
-            
-
-            // For each location, check if the item and count match
-            for (const surveyed of surveyContents) {
-                const matchingItem = chestContents.find( x => x.location.slot === surveyed.location.slot && x.location.shulker_slot === surveyed.location.shulker_slot )
-                if (matchingItem) {
-                    if (matchingItem.count !== surveyed.count) {
-                        console.log("ERROR: Item count does not match")
-                        console.log(matchingItem)
-                        console.log("surveyed: " + surveyed)
-                    }
-                } else {
-                    console.log("ERROR: Item not in database")
-                    console.log(surveyed)
-                }
-            }
-            // For each item in the chest, check if it was surveyed
-            for (const chestItem of chestContents) {
-                const matchingItem = surveyContents.find( x => x.location.slot === chestItem.location.slot && x.location.shulker_slot === chestItem.location.shulker_slot )
-                if (!matchingItem) {
-                    console.log("ERROR: Item not found")
-                    console.log(chestItem)
-                }
-            }
-
-            return job
-        } else {
-            await new Promise(r => setTimeout(r, 1000));
-            return await checkJobStatus(jobId)
-        }
-
-    }
-
-    for(let i = 0; i< INVENTORY_SIZE; i++) {
-        const job_id = await db.add_job(types.JobType.Survey, {chest_type: types.ChestType.Inventory, chest: i})
-        checkJobStatus(job_id)
-    }
-
-
-}
 
 async function get_inventory(): Promise<types.ItemLocation[]> {
     // Get the future inventory state
@@ -127,7 +75,7 @@ async function get_inventory(): Promise<types.ItemLocation[]> {
         switch (job.type) {
             case types.JobType.Move:
                 const moves = job.parameters;
-                _apply_moves(types.ChestType.Inventory, inventory, moves)
+                apply_moves(types.ChestType.Inventory, inventory, moves)
                 break;
         }
     }
@@ -169,7 +117,7 @@ function select_items_to_withdraw(items: {item: types.Item, count: number}[], in
         
         // First if there are any shulkers with the item, take those
         let shulker_count = Math.floor(count / ( 27 * item.stack_size ) )
-        let fullShulkers = getFullShulkers(inventory).filter( x => x.inner_item.id === item.id)
+        let fullShulkers = helper.get_full_shulkers(inventory).filter( x => x.inner_item.id === item.id)
 
         for (const shulker of fullShulkers) {
             if (remainingCount < 27 * item.stack_size) break;
@@ -177,7 +125,7 @@ function select_items_to_withdraw(items: {item: types.Item, count: number}[], in
             selectedItems.push({"item": shulker.item, "location": shulker.location, "count": 1,})
 
             // move shulker contents to with it's shulker above to station chest
-            _find_shulker_contents(inventory, shulker.location).forEach( shulker_item => {
+            helper.find_shulker_contents(inventory, shulker.location).forEach( shulker_item => {
                 selectedItems.push({
                     "item": shulker_item.item,
                     "location": shulker_item.location,
@@ -362,80 +310,9 @@ function get_open_slots(inventory: types.ItemLocation[], chest_count: number): t
     return result;
 }
 
-function _score(inventory: types.ItemLocation[]): number {
-    /*
-    Gives a score to the current inventory state. The higher the score, the better the inventory state.
-    
-    Shulker utilization: You want to prioritize shulkers that are full with one type of item, as this 
-    maximizes the use of each shulker and reduces the overall number of shulkers needed.
-    Slot utilization: You want to minimize the overall number of slots needed, as this reduces the 
-    physical space required for the storage system.
-    Retrieval time: You want to balance the above factors with the time it takes to retrieve an item from a shulker. 
-    Retrieving an item from a shulker that is full with one type of item may be faster than retrieving an item from a shulker with a mix of items.    
-    */
-
-    const shulker_utilization_weight = 1
-    const slot_utilization_weight = 1
-    const retrieval_time_weight = 1
-
-    // Shulker utilization
-    const shulker_count = inventory.filter(item => item.item.name.endsWith("shulker_box")).length
-    const full_shulker_count = getFullShulkers(inventory).length
-    const shulker_utilization = full_shulker_count / shulker_count
-
-    // Slot utilization
-    const slots_count = inventory.filter(item => item.location.shulker_slot === null).length
-    const items_count = inventory.length
-    const slot_utilization = items_count / slots_count
-
-    // Retrieval time
-    // For each shulker, determine the number of unique items in it
-    const unique_items = inventory.filter(item => item.item.name.endsWith("shulker_box")).map(shulker => {
-        const subslots = _find_shulker_contents(inventory, shulker.location)
-        // return the number of unique items in this shulker
-        return subslots.map(subslot => subslot.item.id).filter((value, index, self) => self.indexOf(value) === index).length
-
-    })
-    const average_unique_items = unique_items.reduce((a, b) => a + b, 0) / unique_items.length
-
-    return shulker_utilization_weight * shulker_utilization + slot_utilization_weight * slot_utilization - retrieval_time_weight * average_unique_items
-}
-
-function getFullShulkers(inventory: types.ItemLocation[]): {item: types.Item, location: types.Location, inner_item: types.Item}[] {
-    const fullShulkers = [];
-    for (const {item, location, count} of inventory) {
-      if (item.name.endsWith("shulker_box")) {
-
-        // Find all the subslots in this chest and slot
-        const subslots = _find_shulker_contents(inventory, location)
-
-        // Check if there are exactly 4 subslots with a count of 64
-        if (
-          subslots.length === 27 &&
-          subslots.every(({count}) => count === subslots[0].item.stack_size) && 
-          subslots.every(({item}) => item.id === subslots[0].item.id)
-        ) {
-          fullShulkers.push({
-            location: location,
-            item: item,
-            inner_item: subslots[0].item,
-          })
-        }
-      }
-    }
-    return fullShulkers;
-}
-
-function _find_shulker_contents(inventory: types.ItemLocation[], shulker_location: types.Location): types.ItemLocation[] {
-    return inventory.filter(({location}) => 
-        location.chest === shulker_location.chest && 
-        location.slot == shulker_location.slot &&
-        location.shulker_slot != null
-    )
-}
 
 
-export function _apply_moves(chest_type: types.ChestType, inventory: types.ItemLocation[], moves: types.MoveItem[]) {
+export function apply_moves(chest_type: types.ChestType, inventory: types.ItemLocation[], moves: types.MoveItem[]) {
     // Implicit returns inventory variable with inventory state after applying the moves
     // This must match db.apply_moves()
 

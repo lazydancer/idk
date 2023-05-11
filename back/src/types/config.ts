@@ -23,6 +23,6 @@ interface Config {
 
 import fs from 'fs'
 
-export function loadConfig(): Config {
+export function load_config(): Config {
     return JSON.parse(fs.readFileSync('offline_config.json', 'utf8'))
 }

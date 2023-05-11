@@ -1,7 +1,8 @@
 import { Pool } from "pg";
-import { loadConfig } from "./config";
+import { load_config } from "../types/config";
+import * as types from '../types/types'
 
-const config = loadConfig()
+const config = load_config()
 
 
 const pool = new Pool({
@@ -14,7 +15,6 @@ const pool = new Pool({
 
 const STATIONS_COUNT = config.build.stations
 
-import * as types from './types'
 
 
 export async function init_tables() {
@@ -276,8 +276,6 @@ User management
 export async function verify(token: string): Promise<{id: number, station_id: number, token: string, name: string}> {
     const result = await pool.query("SELECT id, name, station_id, token FROM users WHERE token = $1", [token])
     const user = result.rows[0]
-
-    console.log(user)
     return user
 }
 

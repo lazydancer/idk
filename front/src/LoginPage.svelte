@@ -15,7 +15,6 @@
     if (response.ok) {
       const res = await response.json();
 
-      console.log(res);
 
       setCookie('idkCookie', JSON.stringify({
         token: res.token,
@@ -24,9 +23,9 @@
       }), {
         expires: 1
       });
-    //   location.reload();
+      location.reload();
     } else {
-    console.log("error")
+      console.log("error")
     // Handle login error
     }
   };
