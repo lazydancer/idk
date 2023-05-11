@@ -2,6 +2,9 @@
   import { Line } from 'svelte-chartjs'
   import 'chart.js/auto'
 
+  import { authFetch } from './auth.js';
+
+
   export let item_id;
 
   let item = {
@@ -18,9 +21,7 @@
 
 
   onMount(async () => {
-    console.log("reqeuest item", item_id, "from api")
-    const res = await fetch(`http://localhost:8000/api/item/${item_id}`);
-    item = await res.json();
+    item = await authFetch(`http://localhost:8000/api/item/${item_id}`);
   });
 
 
@@ -50,7 +51,7 @@
     // create new object where count is the order count
     const item_order = Object.assign({}, item, {count: count})
 
-    const res = await fetch(`http://localhost:8000/api/order`, {
+    const res = await authFetch(`http://localhost:8000/api/order`, {
       method: 'POST',
       body: JSON.stringify([item_order]),
       headers: { 'Content-Type': 'application/json'}

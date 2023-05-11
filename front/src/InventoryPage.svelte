@@ -4,14 +4,15 @@
 
   import { onMount } from 'svelte';
 
-  export let navigateTo;
+  import { authFetch } from './auth.js';
+
 
   let items = [];
   let visibleItems = [];
 
+
   onMount(async () => {
-    const res = await fetch(`http://localhost:8000/api/list`);
-    items = await res.json();
+    const items = await authFetch(`http://localhost:8000/api/list`);
     items.map(item => item.orderCount = 0)
 
     visibleItems = items;

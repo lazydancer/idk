@@ -1,38 +1,38 @@
 <script>
     import List from './List.svelte';
+
+    import { authFetch } from './auth.js';
     
     let items = [];
     let isQuoteInQueue = false;
 
     async function getJobStatus(job_id) {
-        const res = await fetch(`http://localhost:8000/api/job/${job_id}`);
-        const job = await res.json();
+        const job = await authFetch(`http://localhost:8000/api/job/${job_id}`);
         return job.status;
     }
   
     async function quote() {
         isQuoteInQueue = true;
         console.log("reqeuest quote from api")
-        const res = await fetch(`http://localhost:8000/api/quote/${0}`)
+        const { job_id } = await authFetch(`http://localhost:8000/api/quote/${0}`)
 
-        const { job_id } = await res.json();
         let status = await getJobStatus(job_id);
         while (status !== 'completed') {
             await new Promise(resolve => setTimeout(resolve, 1000));
             status = await getJobStatus(job_id);
         }
 
-        const res2 = await fetch(`http://localhost:8000/api/survey/${job_id}`);
-        items = await res2.json();
+        items = await authFetch(`http://localhost:8000/api/survey/${job_id}`);
         isQuoteInQueue = false;
     }
 
     async function deposit() {
-        const res = await fetch(`http://localhost:8000/api/deposit`, {
-        method: 'POST',
-        body: JSON.stringify({station: 0}),
-        headers: { 'Content-Type': 'application/json'}
+        const res = await authFetch(`http://localhost:8000/api/deposit`, {
+          method: 'POST',
+          body: JSON.stringify({station: 0}),
+          headers: { 'Content-Type': 'application/json'}
         })
+        items = [];
     }
   
 

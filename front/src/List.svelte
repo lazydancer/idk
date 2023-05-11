@@ -1,6 +1,4 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
-
   export let items;
   export let onItemClick;
   export let countProp = 'count';
@@ -8,10 +6,16 @@
   function handleClick(item) {
       onItemClick(item);
   }
+
+  function handleKeyDown(event, item) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      handleClick(item);
+    }
+  }
 </script>
 
 {#each items as v_item}
-  <div class="flex flex-row border-b border-gray-100 " on:click={() => handleClick(v_item)}>
+  <div class="flex flex-row border-b border-gray-100 {onItemClick ? 'hover:bg-gray-200 cursor-pointer' : ''} " tabindex="0" on:click={() => handleClick(v_item)} on:keydown={(event) => handleKeyDown(event, v_item)}>
       <div class="mr-4" style="width: 37px; height: 37px; background: #8B8B8B; border: 2px solid; border-color: #373737 #FFF #FFF #373737">
           <img src="static/icons/{v_item.item.name}.png" style="width:32px; height:32px;" alt={v_item.item.name} />
       </div>

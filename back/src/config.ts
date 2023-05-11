@@ -17,6 +17,7 @@ interface Config {
         location: number[],
         width: number,
         depth: number,
+        stations: number,
     }
 }
 
