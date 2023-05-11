@@ -10,7 +10,12 @@
 
   export let url = '';
 
-  let token = getCookie('token');
+  let cookie = getCookie('idkCookie')
+  if (cookie !== '') {
+    cookie = JSON.parse(cookie);
+  }
+
+
 </script>
 
 <svelte:head>
@@ -21,7 +26,7 @@
 </svelte:head>
 
 
-{#if token}
+{#if cookie}
   <Router url="{url}">
     <header class="max-w-none mx-auto px-8 py-4 border-b border-gray-200 bg-white w-full fixed top-0 left-0 z-50">
       <div class="flex items-center justify-between">
@@ -42,14 +47,14 @@
         </div>
         <nav class="flex">
           <ul class="flex flex-row">
-            <Link to="/station">Station</Link>
+            <span class="pr-4">{cookie.user}</span>
+            <span class="pr-4">Station:  {cookie.station_id}</span>
           </ul>
         </nav>
       </div>
     </header>
 
     <main class="pt-20 pb-8 mx-8">
-
       <Route path="/" component="{InventoryPage}" />
       <Route path="/deposit" component="{DepositPage}" />
       <Route path="/item/:item_id" component="{ItemPage}" />

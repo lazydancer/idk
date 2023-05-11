@@ -12,7 +12,7 @@ const pool = new Pool({
     port: config.database.port,
 })
 
-const stations_count = config.build.stations
+const STATIONS_COUNT = config.build.stations
 
 import * as types from './types'
 
@@ -273,33 +273,43 @@ export async function get_survey(job_id: number): Promise<types.ItemLocation[]> 
 User management
 */
 
-export async function verify(token: string): Promise<{userId: number, stationId: number, token: string}> {
-    const result = await pool.query("SELECT id, station, token FROM users WHERE token = $1", [token])
+export async function verify(token: string): Promise<{id: number, station_id: number, token: string, name: string}> {
+    const result = await pool.query("SELECT id, name, station_id, token FROM users WHERE token = $1", [token])
     const user = result.rows[0]
+
+    console.log(user)
     return user
 }
 
-export async function get_open_station(userId: number): Promise<number|null> {
+export async function get_open_station(user_id: number): Promise<number|null> {
     // get from user table, with columns id, name, token, station
-    const result = await pool.query("SELECT stations FROM users WHERE station IS NOT NULL")
-    const locked_stations = result.rows.map( (x: any) => x.station )
+    const result = await pool.query("SELECT id, station_id FROM users WHERE station_id IS NOT NULL")
+    const locked_stations = result.rows
 
-    let stationId = null
+    console.log("locked_stations", locked_stations)
+    // Return station if user already has one
+    const user_result = locked_stations.find( (x: any) => x.id == user_id )
+    if (user_result) {
+        return user_result.station
+    }
+
+    let station_id = null
     // Find an open station
-    for(let i=0; i<stations_count; i++) {
-        if ( !locked_stations.includes(i) ) {
-            stationId = i
+    for(let i=0; i<STATIONS_COUNT; i++) {
+        if ( !locked_stations.map( x => x.station ).includes(i) ) {
+            station_id = i
         }
     }
 
-    if (stationId != null) {
-        await pool.query("UPDATE users SET station = $1 WHERE id = $2", [stationId, userId])
+    console.log("user_id", user_id, "station_id", station_id)
+    if (station_id != null) {
+        await pool.query("UPDATE users SET station_id = $1 WHERE id = $2", [station_id, user_id])
     }
 
-    return stationId
+    return station_id
 
 }
 
 export async function open_station(stationId: number): Promise<void> {
-    await pool.query("UPDATE users SET station = NULL WHERE station = $1", [stationId])
+    await pool.query("UPDATE users SET station = NULL WHERE station_id = $1", [stationId])
 }

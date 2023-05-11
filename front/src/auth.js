@@ -1,12 +1,12 @@
 import { getCookie } from 'svelte-cookie';
 
 export async function authFetch(url, options = {}) {
-  const token = getCookie('token');
+  const cookie = JSON.parse(getCookie('idkCookie'));
 
-  if (token) {
+  if (cookie.token) {
     options.headers = {
       ...options.headers,
-      'Authorization': token
+      'Authorization': cookie.token
     };
   }
 

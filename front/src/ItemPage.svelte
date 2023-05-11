@@ -72,7 +72,7 @@
     // create new object where count is the order count
     const item_order = Object.assign({}, item, {count: count})
 
-    const res = await authFetch(`http://localhost:8000/api/order`, {
+    const res = await authFetch(`http://localhost:8000/api/withdraw`, {
       method: 'POST',
       body: JSON.stringify([item_order]),
       headers: { 'Content-Type': 'application/json'}

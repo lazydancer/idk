@@ -1,28 +1,19 @@
 <script>
+    import { setCookie, getCookie } from 'svelte-cookie';
+
     import List from './List.svelte';
 
     import { authFetch } from './auth.js';
     
     let items = [];
-    let isQuoteInQueue = false;
+    let station_id = getCookie('idkCookie').station_id
 
-    async function getJobStatus(job_id) {
-        const job = await authFetch(`http://localhost:8000/api/job/${job_id}`);
-        return job.status;
-    }
-  
-    async function quote() {
-        isQuoteInQueue = true;
-        const { job_id } = await authFetch(`http://localhost:8000/api/quote/${0}`)
 
-        let status = await getJobStatus(job_id);
-        while (status !== 'completed') {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            status = await getJobStatus(job_id);
-        }
-
-        items = await authFetch(`http://localhost:8000/api/survey/${job_id}`);
-        isQuoteInQueue = false;
+    async function request_station() {
+        const res = await authFetch(`http://localhost:8000/api/station`)
+        console.log(res, res.station_id)
+        station_id = res.station_id;
+        setCookie('idkCookie', JSON.stringify({station_id: res.station_id, user_id: res.user_id, token: res.token}))
     }
 
     async function deposit() {
@@ -37,19 +28,21 @@
 
 </script>
 
-<button class="relative bg-red-700 hover:bg-red-900 text-white py-1 px-3 border-transparent my-6" on:click={() => quote()}>
-  Quote
-  {#if isQuoteInQueue}
-    <div class="absolute inset-0 bg-white opacity-75 flex items-center justify-center">
-      <div class="loader"></div>
-    </div>
-  {/if}
+{#if !station_id}
+  <h1>Station:  
+    <button class="relative bg-red-700 hover:bg-red-900 text-white py-1 px-3 border-transparent my-6" on:click={() => request_station()}>
+      Request Station
+    </button>
+  </h1>
 
-</button>
+{:else}
+  <h1 class="my-7">Station: <b>{station_id}</b></h1>
   
-<button class="bg-red-700 hover:bg-red-900 text-white py-1 px-3 border-transparent my-6" on:click={() => deposit()}>Deposit</button>
+  <button class="bg-red-700 hover:bg-red-900 text-white py-1 px-3 border-transparent my-6" on:click={() => deposit()}>Deposit</button>
+{/if}
 
 <List items={items} />
+
 
 <style>
   .loader {

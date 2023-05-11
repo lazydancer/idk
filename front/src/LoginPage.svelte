@@ -14,15 +14,20 @@
     
     if (response.ok) {
       const res = await response.json();
-    //   const { userId, sessionId } = await response.json();
-    //   const sessionData = { userId };
-    //   const encodedSessionData = btoa(JSON.stringify(sessionData));
-    //   const fullSessionId = `${sessionId}.${encodedSessionData}`;
-      setCookie('token', res.token);
-      location.reload();
+
+      console.log(res);
+
+      setCookie('idkCookie', JSON.stringify({
+        token: res.token,
+        user: res.user,
+        station_id: res.station_id
+      }), {
+        expires: 1
+      });
+    //   location.reload();
     } else {
-      console.log("error")
-      // Handle login error
+    console.log("error")
+    // Handle login error
     }
   };
 </script>

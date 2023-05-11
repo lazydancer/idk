@@ -39,6 +39,8 @@ export async function withdraw(items: {item: types.Item, count: number}[], stati
     return id
 }
 
+// Deposit is a two step process. Learn about the station's contents, then deposit the items.
+// Worker calls deposit function with verified = true
 export async function quote(station: number, verified: boolean): Promise<number> {
     const chest = {chest_type: types.ChestType.Station, chest: station, deposit: verified}
     const id = db.add_job(types.JobType.Survey, chest)

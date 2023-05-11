@@ -4,8 +4,10 @@ import { NextFunction, Request, Response } from "express"
 
 import { Worker } from './worker'
 
+
 import * as inventory from './inventory'
 import * as db from './db'
+import { daily_cumulative } from './item'
 
 const express = require('express')
 var cors = require('cors')
@@ -32,7 +34,7 @@ async function main() {
   app.use(authenticate)
 
   app.post('/api/login', async function (req: AuthenticatedRequest, res: Response) {
-    res.send({userId: req.userId, token: req.token})
+    res.send({user: req.name, token: req.token, station_id: req.station_id})
   })
 
   app.get('/api/list', async function (req: AuthenticatedRequest, res: Response) {
@@ -43,13 +45,18 @@ async function main() {
   app.get('/api/item/:item_id', async function (req: AuthenticatedRequest, res: Response) {
     const items = await inventory.list()
     const item = items.find( (x:any) => x.item.id == req.params.item_id)
-
-    // get item history
-    const history = await db.get_item_history(parseInt(req.params.item_id, 10))
+    
+    if( item == undefined ) { 
+      res.send({error: "Item not found"})
+      return
+    }
+    
+    let history = await db.get_item_history(item.item.id)
+    history = daily_cumulative(history)
 
     const result = {
-      item: item?.item,
-      count: item?.count,
+      item: item.item,
+      count: item.count,
       history: history,
     }
 
@@ -57,29 +64,13 @@ async function main() {
   })
 
   app.get('/api/station', async function (req: AuthenticatedRequest, res: Response) {
-    const userId = parseInt(req.query.userId as string, 10)
-    const station = await db.get_open_station(userId)
-    res.send(station)
+    const station_id = await db.get_open_station(req.user_id)
+    res.send({station_id})
   })
 
-  app.post('/api/order', async function (req: AuthenticatedRequest, res: Response) {
+  app.post('/api/withdraw', async function (req: AuthenticatedRequest, res: Response) {
     await inventory.withdraw(req.body, 0)
     res.send({'status': 'ok'})
-  })
-
-  app.get('/api/quote/:station', async function (req: AuthenticatedRequest, res: Response) {
-    const job_id = await inventory.quote(parseInt(req.params.station), false)
-    res.send({'job_id': job_id})
-  })
-
-  app.get('/api/survey/:job_id', async function (req: AuthenticatedRequest, res: Response) {
-    const quote = await inventory.get_survey(parseInt(req.params.job_id))
-    res.send(quote)
-  })
-
-  app.get('/api/job/:job_id', async function (req: AuthenticatedRequest, res: Response) {
-    const job = await db.get_job(parseInt(req.params.job_id))
-    res.send(job)
   })
 
   app.post('/api/deposit', async function (req: AuthenticatedRequest, res: Response) {
@@ -103,8 +94,10 @@ async function main() {
 
 // adds the user id and token to the request
 interface AuthenticatedRequest extends Request {
-  userId: number
+  user_id: number
   token: string
+  name: string
+  station_id: number
 }
 
 const authenticate = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -116,12 +109,16 @@ const authenticate = async (req: AuthenticatedRequest, res: Response, next: Next
 
   const user = await db.verify(token)
 
+  console.log(user, "user")
+
   if (!user) {
     return res.status(401).send({ error: 'Invalid credentials!' });
   }
 
-  req.userId = user.userId
+  req.user_id = user.id
   req.token = user.token
+  req.name = user.name
+  req.station_id = user.station_id
 
   next()
 }
