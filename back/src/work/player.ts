@@ -3,6 +3,7 @@ const vec3 = require('vec3')
 
 import * as types from '../types/types'
 import { load_config } from '../types/config'
+import { get_item_ids } from '../model/db'
 
 const config = load_config()
 
@@ -36,7 +37,7 @@ export class Player {
 
 		this.open_container = await this.bot.openContainer(this.bot.blockAt(location))
 
-		return this.open_container.containerItems().map((o: any) => ({
+		let items = this.open_container.containerItems().map((o: any) => ({
 			item: { 
 				id: 0, 
 				name: o.name, 
@@ -53,6 +54,11 @@ export class Player {
 			},
 			count: o.count,
 		}));
+
+		await get_item_ids(items.map((i: any) => i.item))
+
+		return items
+
 	}
 
 	async lclick(slot: any) {
@@ -130,7 +136,7 @@ export class Player {
 
 		this.shulker_location = [chest, chest_type, slot, window, block]		
 
-		return window.containerItems().map((o: any) => ({
+		let items = window.containerItems().map((o: any) => ({
 			item: { 
 				id: 0, 
 				name: o.name, 
@@ -148,6 +154,9 @@ export class Player {
 			count: o.count,
 		}))
 		
+		await get_item_ids(items.map((i: any) => i.item))
+
+		return items
 		
 	}
 
@@ -184,6 +193,29 @@ export class Player {
 		const x = config.build.location[0] + 5
 		const z = config.build.location[2] - 2
 		await this.move([x, z])
+	}
+
+
+	async player_inventory() {
+		this.bot.inventory.items().map((o: any) => ({
+			item: { 
+				id: 0, 
+				name: o.name, 
+				metadata: o.metadata, 
+				nbt: o.nbt, 
+				display_name: o.displayName, 
+				stack_size: o.stackSize,
+			},
+			location: { 
+				chest_type: types.ChestType.Player, 
+				chest: 0, 
+				slot: o.slot, 
+				shulker_slot: null,
+			},
+			count: o.count,
+		}));
+
+		
 	}
 
 	private async move(loc: any) {

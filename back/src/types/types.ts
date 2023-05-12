@@ -1,6 +1,7 @@
 export const enum ChestType {
     Station,
-    Inventory
+    Inventory,
+    Player,
 }
 
 export interface Item {

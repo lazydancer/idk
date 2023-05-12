@@ -1,6 +1,9 @@
 import * as types from '../types/types'
 
 
+const shulker_inventory_start = 27
+const double_chest_inventory_start = 54
+
 export async function move(player: any, requests: types.MoveItem[]) {
     /*
         Move items between chests
@@ -12,7 +15,71 @@ export async function move(player: any, requests: types.MoveItem[]) {
     requests = await move_items_out_of_shulkers(player, requests)
     requests = await move_items_into_shulkers(player, requests)
 
-    await move_normal(player, requests)
+
+    requests = requests.sort( (a, b) => a.from.chest - b.from.chest)
+
+    // check player inventory is empty
+    const inventory = player.player_inventory()
+    if (inventory.length > 0) {
+        throw new Error('Player inventory is not empty')
+    }
+
+
+    const chunkSize = 27 // inventory (except hotbar)
+
+    for (let a = 0; a < requests.length; a += chunkSize) {
+        const chunk = requests.slice(a, a + chunkSize);
+
+        let prev_chest = {
+            chest_type: types.ChestType.Inventory,
+            chest:  -1,
+        };
+
+        const equals_chest = (a: any, b: any) =>  (a.chest_type === b.chest_type) && (a.chest === b.chest)
+
+        // Move from chest to inventory
+        for(let [i, req] of chunk.entries()) {
+
+            if ( !equals_chest(prev_chest, req.from) ) {
+                await player.open(req.from.chest_type, req.from.chest)
+                prev_chest = { chest_type: req.from.chest_type, chest: req.from.chest }
+            }
+
+            await clicks_move_item(player, req.from.slot, i + double_chest_inventory_start, req.count)            
+        }
+
+        // Move from inventory to chest
+        for(let [i, req] of chunk.entries()) {
+            let contents
+            if ( !equals_chest(prev_chest, req.to) ) {
+                contents = await player.open(req.to.chest_type, req.to.chest)
+                prev_chest = { chest_type: req.to.chest_type, chest: req.to.chest }
+            }
+
+            if( req.to.chest_type == types.ChestType.Station ) {
+                // get first open slot(s) for the item
+                // if none, throw error
+                let open_slot_moves = first_slot(contents, req)
+
+                if (open_slot_moves.length == null) {
+                    throw new Error('No open slots for item')
+                }
+
+                // move item to open slot(s)
+                for (const move of open_slot_moves) {
+                    console.log("open slot move: ", move) 
+                    await clicks_move_item(player, i + double_chest_inventory_start, move.to.slot, req.count)
+                }
+
+                // update contents
+                contents = await player.open(req.to.chest_type, req.to.chest)
+
+            } else {
+                await clicks_move_item(player, i + double_chest_inventory_start, req.to.slot, req.count)            
+            }
+        }
+
+    }
 }
 
 
@@ -58,8 +125,6 @@ function remove_moves_within_shulker(requests: types.MoveItem[]) {
 }
 
 async function move_items_out_of_shulkers(player: any, requests: types.MoveItem[]) {
-    const shulker_inventory_start = 27
-    const double_chest_inventory_start = 54
 
     const to_move = requests.filter( (r: any) => (r.from.shulker_slot != null) && (r.to.shulker_slot == null))  
 
@@ -161,47 +226,53 @@ async function move_items_into_shulkers(player: any, requests: types.MoveItem[])
 
 }
 
-async function move_normal(player: any, requests: types.MoveItem[]) {
-    const chunkSize = 27 // inventory (except hotbar)
-    const inventoryStart = 54
+function first_slot(inventory: any[], item: types.MoveItem): types.MoveItem[] {
+    /**
+     * Given an item and an inventory, returns a list of moves that move the item to the first available slot(s) in the inventory.
+     * If there are existing slots that already contain the item, moves as many items as possible to those slots first.
+     * If there are still items remaining, moves the remaining items to the first available open slots.
+     */
 
-    for (let a = 0; a < requests.length; a += chunkSize) {
-        const chunk = requests.slice(a, a + chunkSize);
+    let remaining_count = item.count
+    let result = []
 
-        let prev_chest = {
-            chest_type: types.ChestType.Inventory,
-            chest:  -1,
-        };
+    console.log("inventory", inventory)
 
-        const equals_chest = (a: any, b: any) =>  (a.chest_type === b.chest_type) && (a.chest === b.chest)
-
-        // Move from chest to inventory
-        for(let [i, req] of chunk.entries()) {
-
-            if ( !equals_chest(prev_chest, req.from) ) {
-                await player.open(req.from.chest_type, req.from.chest)
-                prev_chest = { chest_type: req.from.chest_type, chest: req.from.chest }
-            }
-
-            await clicks_move_item(player, req.from.slot, i + inventoryStart, req.count)            
-        }
-
-        // Move from inventory to chest
-        for(let [i, req] of chunk.entries()) {
-
-            if ( !equals_chest(prev_chest, req.to) ) {
-                await player.open(req.to.chest_type, req.to.chest)
-                prev_chest = { chest_type: req.to.chest_type, chest: req.to.chest }
-            }
-
-            await clicks_move_item(player, i + inventoryStart, req.to.slot, req.count)            
-            
-        }
-
+    // First find existing items
+    let first_slot = inventory.findIndex((i: any) => i && i.item.id === item.item.id && i.count < i.item.stack_size)
+    while (first_slot !== -1 && remaining_count > 0) {
+        console.log("over existing item")
+        // If there's an existing item, move from the first available slot
+        const move_count = Math.min(remaining_count, item.item.stack_size - inventory[first_slot].count)
+        result.push({
+            item: item.item,
+            count: move_count,
+            from: item.from,
+            to: {slot: first_slot, chest: item.to.chest, chest_type: item.to.chest_type, shulker_slot: item.to.shulker_slot}
+        })
+        remaining_count -= move_count
+        first_slot = inventory.findIndex((i: any) => i && i.id === item.item.id && i.Count < i.item.stack_size && i.slot !== first_slot)
     }
 
-}
+    // Then find open spaces
+    if (remaining_count > 0) {
+        for (let i = 0; i < 54 && remaining_count > 0; i++) {
+            if (!inventory[i]) {
+                // If there's an open space, move from the original slot to the open space
+                const move_count = Math.min(remaining_count, item.item.stack_size)
+                result.push({
+                    item: item.item,
+                    count: move_count,
+                    from: item.from,
+                    to: {slot: i, chest: item.to.chest, chest_type: item.to.chest_type, shulker_slot: item.to.shulker_slot}
+                })
+                remaining_count -= move_count
+            }
+        }
+    }
 
+    return result
+}
 
 
 
