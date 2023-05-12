@@ -13,11 +13,17 @@ export interface Item {
     stack_size: number;
 }
 
+
 export interface Location {
     chest_type: ChestType;
     chest: number;
     slot: number;
     shulker_slot: number | null;
+}
+
+export interface ItemCount {
+    item: Item;
+    count: number;
 }
 
 export interface ItemLocation {
@@ -36,6 +42,8 @@ export interface MoveItem {
 export const enum JobType { 
     Move = "move",
     Survey = "survey",
+    Withdraw = "withdraw",
+    Deposit = "deposit",
 }
 
 export const enum JobStatus {

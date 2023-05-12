@@ -195,7 +195,7 @@ export async function get_queue(): Promise<types.Job[]> {
     return result.rows
 }
 
-export async function add_job(type: types.JobType, parameters: types.MoveItem[] | {chest_type: types.ChestType, chest: number}): Promise<number> {
+export async function add_job(type: types.JobType, parameters: any): Promise<number> {
     const parameters_string = JSON.stringify(parameters)
     const result  = await pool.query("INSERT INTO queue (type, parameters) VALUES ($1, $2) RETURNING id", [type, parameters_string]) 
     const id = result.rows[0].id

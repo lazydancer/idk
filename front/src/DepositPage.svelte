@@ -19,7 +19,6 @@
     async function deposit() {
         const res = await authFetch(`http://localhost:8000/api/deposit`, {
           method: 'POST',
-          body: JSON.stringify({station: 0}),
           headers: { 'Content-Type': 'application/json'}
         })
         items = [];

@@ -5,6 +5,7 @@ import { NextFunction, Request, Response } from "express"
 import * as inventory from '../inventory/inventory'
 import { take_inventory } from '../inventory/optimize'
 import * as db from '../model/db'
+import * as types from '../types/types'
 import { daily_cumulative } from '../inventory/item'
 
 const express = require('express')
@@ -41,17 +42,28 @@ export async function run_server() {
 
   app.get('/api/station', async function (req: AuthenticatedRequest, res: Response) {
     const station_id = await db.get_open_station(req.user_id)
-    console.log(station_id)
     res.send({station_id})
   })
 
   app.post('/api/withdraw', async function (req: AuthenticatedRequest, res: Response) {
-    await inventory.withdraw(req.body, 0)
+    console.log("req.body", req.body)
+    const request = {
+      station: req.station_id,
+      items: req.body,
+      user_id: req.user_id,
+    }
+
+    await db.add_job(types.JobType.Withdraw, request)
     res.send({'status': 'ok'})
   })
 
   app.post('/api/deposit', async function (req: AuthenticatedRequest, res: Response) {
-    await inventory.quote(req.body['station'], true)
+    const request = {
+      station_id: req.station_id,
+      user_id: req.user_id,
+    }
+
+    await db.add_job(types.JobType.Deposit, request)
     res.send({'status': 'ok'})
   })
 

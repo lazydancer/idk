@@ -72,6 +72,9 @@
     // create new object where count is the order count
     const item_order = Object.assign({}, item, {count: count})
 
+    // remove history from item_order
+    delete item_order.history
+
     const res = await authFetch(`http://localhost:8000/api/withdraw`, {
       method: 'POST',
       body: JSON.stringify([item_order]),

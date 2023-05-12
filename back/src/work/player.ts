@@ -335,7 +335,7 @@ export class Player {
 		}
 
 		if (chest_type == types.ChestType.Station) {
-			return vec3(config.build.location[0] + 5 + 2*chest_number, config.build.location[1], config.build.location[2] - 1)
+			return vec3(config.build.location[0] + 1 + chest_number, config.build.location[1], config.build.location[2] - 1)
 		}
 
 	}
@@ -352,7 +352,7 @@ export class Player {
 		}
 
 		if (chest_type == types.ChestType.Station) {
-			return [config.build.location[0] + 5 + 2*chest_number, config.build.location[2] - 2]
+			return [config.build.location[0] + 1 + chest_number, config.build.location[2] - 2]
 		}
 	}
 
