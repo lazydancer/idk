@@ -22,8 +22,11 @@ export async function init_tables() {
     await pool.query("CREATE TABLE IF NOT EXISTS locations (item_id INTEGER, slot INTEGER, count INTEGER, chest INTEGER, shulker_slot INTEGER, FOREIGN KEY (item_id) REFERENCES items(id))")
     await pool.query("CREATE TABLE IF NOT EXISTS inventory_history (id SERIAL PRIMARY KEY, item_id INTEGER REFERENCES items(id), user_id INTEGER, count INTEGER, event_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
     await pool.query("CREATE TABLE IF NOT EXISTS queue (id serial4 NOT NULL, \"type\" text NOT NULL, parameters jsonb NULL, status text NOT NULL DEFAULT 'queued'::text, created_at timestamp NOT NULL DEFAULT now(), started_at timestamp NULL, completed_at timestamp NULL, CONSTRAINT queue_pkey PRIMARY KEY (id))")
-    await pool.query("CREATE TABLE IF NOT EXISTS surveyed IF NOT EXISTS (slot int4, count int4, chest int4, shulker_slot int4, item_id int4, \"date\" timestamp DEFAULT now(), chest_type int4, job_id int4)")
-    await pool.query("CREATE TABLE IF NOT EXISTS users (id serial4, \"name\" varchar(255), token varchar, station int4 NULL, CONSTRAINT users_pkey PRIMARY KEY (id));")
+    await pool.query("CREATE TABLE IF NOT EXISTS surveyed (slot int4, count int4, chest int4, shulker_slot int4, item_id int4, \"date\" timestamp DEFAULT now(), chest_type int4, job_id int4)")
+    await pool.query("CREATE TABLE IF NOT EXISTS users (id serial4, \"name\" varchar(255), token varchar, station_id int4 NULL, CONSTRAINT users_pkey PRIMARY KEY (id));")
+    await pool.query("CREATE TABLE IF NOT EXISTS ownership (user_id int4 NULL, item_id int4 NULL, count int4 NULL);")
+
+    console.log("Tables initialized")
 }
 
 export async function get_items(): Promise<types.ItemLocation[]> {
@@ -288,18 +291,18 @@ export async function get_open_station(user_id: number): Promise<number|null> {
     // Return station if user already has one
     const user_result = locked_stations.find( (x: any) => x.id == user_id )
     if (user_result) {
-        return user_result.station
+        return user_result.station_id
     }
 
     let station_id = null
     // Find an open station
     for(let i=0; i<STATIONS_COUNT; i++) {
-        if ( !locked_stations.map( x => x.station ).includes(i) ) {
+        if ( !locked_stations.map( x => x.station_id ).includes(i) ) {
             station_id = i
+            break;
         }
     }
 
-    console.log("user_id", user_id, "station_id", station_id)
     if (station_id != null) {
         await pool.query("UPDATE users SET station_id = $1 WHERE id = $2", [station_id, user_id])
     }

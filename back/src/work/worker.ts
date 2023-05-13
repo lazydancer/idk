@@ -30,6 +30,7 @@ export class Worker {
                         
                         const moves = await inventory.withdraw(withdraw_items, station);
                         await actions.move(this.player, moves);
+                        console.log("db apply moves", moves)
                         await db.apply_moves(moves);
                         break;
 

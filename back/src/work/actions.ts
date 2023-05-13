@@ -1,4 +1,7 @@
+import { get } from 'http'
 import * as types from '../types/types'
+import { get_item_ids } from '../model/db'
+
 
 
 const shulker_inventory_start = 27
@@ -13,11 +16,6 @@ export async function move(player: any, requests: types.MoveItem[]) {
     console.log('move', requests)
     requests = structuredClone(requests) // requests is used again outside of this function
 
-    let player_inventory = await player.player_inventory()
-    if (player_inventory.length > 0) {
-        throw new Error('Player inventory is not empty')
-    }
-
     // remove any requests that are in a shulker to be moved within the shulker
     requests = remove_moves_within_shulker(requests)
 
@@ -29,38 +27,37 @@ export async function move(player: any, requests: types.MoveItem[]) {
     let chunks = chunk(requests, 27)
 
     for (let chunk of chunks) {
-        await collect(player, player_inventory, chunk)
-        await deposit(player, player_inventory, chunk)
+        await collect(player, chunk)
+        await deposit(player, chunk)
     }
 
 
 
 }
     
-async function collect(player: any, player_inventory: types.ItemLocation[], requests: types.MoveItem[]) {
+async function collect(player: any, requests: types.MoveItem[]) {
     const from_shulker = requests.filter( (r: any) => (r.from.shulker_slot != null))  
-    await move_items_out_of_shulkers(player, player_inventory, from_shulker)
+    await move_items_out_of_shulkers(player, from_shulker)
 
     console.log("request collect", requests.filter( (r: any) => r.from.shulker_slot == null))
 
     for (let req of requests.filter( (r: any) => r.from.shulker_slot == null)) {
         await player.open(req.from.chest_type, req.from.chest)
-        const to_slot = await open_slot(player_inventory, req, player_inventory_size)
+        const to_slot = await open_slot(player.inventory, req, player_inventory_size)
         await clicks_move_item(player, req.from.slot, double_chest_inventory_start + to_slot, req.count)
-        player_inventory.push({item: req.item, location: {chest_type: types.ChestType.Player, chest: 0, slot: to_slot, shulker_slot: req.to.shulker_slot}, count: req.count})
+        player.inventory_add({item: req.item, location: {chest_type: types.ChestType.Player, chest: 0, slot: to_slot, shulker_slot: req.to.shulker_slot}, count: req.count})
     }
 }
 
-async function deposit(player: any, player_inventory: types.ItemLocation[], requests: types.MoveItem[]) {
+async function deposit(player: any, requests: types.MoveItem[]) {
     const to_shulker = requests.filter( (r: any) => (r.to.shulker_slot != null))  
-    await move_items_into_shulkers(player, player_inventory, to_shulker)
+    await move_items_into_shulkers(player, to_shulker)
 
 
     for (let req of requests.filter( (r: any) => (r.to.shulker_slot == null))) {
         let inventory = await player.open(req.to.chest_type, req.to.chest)
 
-        console.log("player_inventory", player_inventory)
-        let player_item = player_inventory.find( (x: any) => x.item == req.item && x.count >= req.count)
+        let player_item = player.inventory.find( (x: any) => x.item == req.item && x.count >= req.count)
 
         if(!player_item) {
             throw new Error(`Player does not have ${req.count} ${req.item.name}`)
@@ -71,11 +68,8 @@ async function deposit(player: any, player_inventory: types.ItemLocation[], requ
 
         await clicks_move_item(player, from_slot, to_slot, req.count)
 
-        // remove item from player inventory
-        player_item.count -= req.count
-        if (player_item.count === 0) {
-            player_inventory.splice(player_inventory.indexOf(player_item), 1);
-        }
+        player.inventory_remove(player_item, req.count)
+ 
     }
 
 }
@@ -107,7 +101,7 @@ function remove_moves_within_shulker(requests: types.MoveItem[]) {
     return requests.filter((_, i) => !indexes_to_remove.includes(i))
 }
 
-async function move_items_out_of_shulkers(player: any, player_inventory: types.ItemLocation[], requests: types.MoveItem[]) {
+async function move_items_out_of_shulkers(player: any, requests: types.MoveItem[]) {
 
     // group by shulker
     const grouped = requests.reduce((r: any, a: any) => {
@@ -121,20 +115,16 @@ async function move_items_out_of_shulkers(player: any, player_inventory: types.I
 
         await player.open_shulker(first_move.from.chest_type, first_move.from.chest, first_move.from.slot)
         for( let [i, move] of grouped[key].entries() ) {
-            await clicks_move_item(player, move.from.shulker_slot!, shulker_inventory_start + open_slot(player_inventory, move.item, player_inventory_size), move.count)
+            let to_slot = open_slot(player.inventory, move.item, player_inventory_size)
+            await clicks_move_item(player, move.from.shulker_slot!, shulker_inventory_start + to_slot, move.count)
+            player.inventory_add({item: move.item, location: {chest_type: types.ChestType.Player, chest: 0, slot: to_slot, shulker_slot: null}, count: move.count})
         }
         await player.close_shulker()
     }
 
-    for (const i of requests.map((m: any) => requests.indexOf(m)).sort().reverse()) {
-        requests.splice(i, 1);
-    }
-
-    return requests
-
 }
 
-async function move_items_into_shulkers(player: any, player_inventory: types.ItemLocation[], requests: types.MoveItem[]) {
+async function move_items_into_shulkers(player: any, requests: types.MoveItem[]) {
     const shulker_inventory_start = 27
     const double_chest_inventory_start = 54
 
@@ -189,14 +179,11 @@ async function move_items_into_shulkers(player: any, player_inventory: types.Ite
         
     }
 
-    for (const i of to_move.map((m: any) => requests.indexOf(m)).sort().reverse()) {
-        requests.splice(i, 1);
-    }
 
-    requests.concat(updated_requests)
+    // requests.concat(updated_requests)
 
 
-    return requests
+    // return requests
 
 }
 
@@ -259,7 +246,7 @@ export async function survey(player: any, chest_type: types.ChestType, chest: nu
 }
 
 
-function shulkerContents(input: any): any[] {
+function shulkerContents(input: any): types.ItemLocation[] {
     /*
      * Given a shulker, returns a list of items in the shulker, extracted from nbt data
      */
@@ -319,6 +306,11 @@ function shulkerContents(input: any): any[] {
       });
     }
     
+    console.log(output)
+    get_item_ids(output.map((x: any) => x.item))
+    console.log(output)
+
+
     return output;
 }
 

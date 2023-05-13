@@ -12,6 +12,7 @@ export class Player {
     open_container: any
 	shulker_location: any // When opening a shulker need to store location of where to place it back when closing it
 	map: any // map of all valid locations to move to
+	inventory: types.ItemLocation[] // the bot's inventory
 
 	constructor() {
 		this.bot = mineflayer.createBot({
@@ -24,6 +25,7 @@ export class Player {
 		this.open_container = null
 		this.shulker_location = null
 		this.map = this.build_map()
+		this.inventory = []
 	}
 
 	async open(chest_type: types.ChestType, chest: number)  {
@@ -196,29 +198,6 @@ export class Player {
 	}
 
 
-	async player_inventory() {
-		const inventory = await this.bot.inventory.items().map((o: any) => ({
-			item: { 
-				id: 0, 
-				name: o.name, 
-				metadata: o.metadata, 
-				nbt: o.nbt, 
-				display_name: o.displayName, 
-				stack_size: o.stackSize,
-			},
-			location: { 
-				chest_type: types.ChestType.Player, 
-				chest: 0, 
-				slot: o.slot, 
-				shulker_slot: null,
-			},
-			count: o.count,
-		}));
-
-		return inventory
-		
-	}
-
 	private async move(loc: any) {
 		let x = loc[0]
 		let z = loc[1]
@@ -321,6 +300,36 @@ export class Player {
 		return "done";
 	}
 
+	async inventory_add(item: types.ItemLocation) {
+		// if location already contains item, add to count
+		let player_item = this.inventory.find((i: any) => i.item.id === item.item.id)
+
+		if (player_item) {
+			player_item.count += item.count
+			return
+		}
+
+		// otherwise add to inventory
+		this.inventory.push(item)
+	}
+
+	async inventory_remove(item: types.ItemLocation) {
+
+		let player_item = this.inventory.find((i: any) => i.item.id === item.item.id)
+
+		if (!player_item) {
+			throw Error("item not in inventory")
+		}
+
+		// remove items from player inventory
+		player_item.count -= item.count
+
+		if (player_item.count === 0) {
+			this.inventory.splice(this.inventory.indexOf(player_item), 1);
+		}
+	}
+
+
 	private chest_to_location(chest_type: types.ChestType, chest_number: number): any {
 
 		if(chest_type == types.ChestType.Inventory) {
@@ -358,8 +367,8 @@ export class Player {
 	}
 
 	private build_map(): any {
-		const walkway = [...Array(3*config.build.width).keys()].map(x => 
-		[config.build.location[0] + 3 +x, 
+		const walkway = [...Array(3*config.build.width+2).keys()].map(x => 
+		[config.build.location[0] + 1 +x, 
 			config.build.location[2] - 2]
 		)
 		const rows = [...Array(config.build.width).keys()].map(w => 

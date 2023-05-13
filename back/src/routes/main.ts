@@ -42,6 +42,7 @@ export async function run_server() {
 
   app.get('/api/station', async function (req: AuthenticatedRequest, res: Response) {
     const station_id = await db.get_open_station(req.user_id)
+    console.log("station_id", station_id)
     res.send({station_id})
   })
 

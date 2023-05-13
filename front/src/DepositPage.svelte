@@ -4,6 +4,7 @@
     import List from './List.svelte';
 
     import { authFetch } from './auth.js';
+    import { get } from 'svelte/store';
     
     let items = [];
     let cookie = JSON.parse(getCookie('idkCookie'))
@@ -11,9 +12,9 @@
 
     async function request_station() {
         const res = await authFetch(`http://localhost:8000/api/station`)
-        station_id = res.station_id;
-        console.log(res)
-        setCookie('idkCookie', JSON.stringify({station_id: res.station_id, user_id: res.user_id, token: res.token}))
+        console.log(res.user_id)
+        cookie = JSON.parse(getCookie('idkCookie'))
+        setCookie('idkCookie', JSON.stringify({station_id: res.station_id, ...cookie}))
     }
 
     async function deposit() {
@@ -27,7 +28,7 @@
 
 </script>
 
-{#if cookie.station_id}
+{#if cookie}
   <h1 class="my-7">Station: <b>{cookie.station_id}</b></h1>
   <button class="bg-red-700 hover:bg-red-900 text-white py-1 px-3 border-transparent my-6" on:click={() => deposit()}>Deposit</button>
 
