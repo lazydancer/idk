@@ -1,14 +1,15 @@
 import * as db from '../model/db'
 import * as types from '../types/types'
 
-export async function summarize(item: any): Promise<{item: types.Item, count: number, history: any }> {
+export async function summarize(items: types.ItemLocation[]): Promise<{item: types.Item, count: number, history: any }> {
           
+    const item = items[0]
     let history = await db.get_item_history(item.item.id)
     history = daily_cumulative(history)
     
     const result = {
       item: item.item,
-      count: item.count,
+      count: items.reduce((acc, cur) => acc + cur.count, 0),
       history: history,
     }
     

@@ -197,7 +197,7 @@ export class Player {
 
 
 	async player_inventory() {
-		this.bot.inventory.items().map((o: any) => ({
+		const inventory = await this.bot.inventory.items().map((o: any) => ({
 			item: { 
 				id: 0, 
 				name: o.name, 
@@ -215,6 +215,7 @@ export class Player {
 			count: o.count,
 		}));
 
+		return inventory
 		
 	}
 
