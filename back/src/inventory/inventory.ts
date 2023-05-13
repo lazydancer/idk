@@ -43,9 +43,10 @@ export async function list(): Promise<{item: types.Item, count: number}[]> {
 }
 
 export async function item(item_id: number): Promise<{item: types.Item, count: number, history: any }> {
-    const inventory = await db.get_items()
-    const item_info = inventory.filter( (x:any) => x.item.id == item_id)
-    return await item_helper.summarize(item_info)
+    const item = await db.get_item_info(item_id)
+    let inventory = await db.get_items()
+    inventory = inventory.filter( (x:any) => x.item.id == item_id)
+    return await item_helper.summarize(item, inventory)
 }
 
 

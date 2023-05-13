@@ -28,7 +28,7 @@ export class Player {
 		this.inventory = []
 	}
 
-	async open(chest_type: types.ChestType, chest: number)  {
+	async open(chest_type: types.ChestType, chest: number): Promise<types.ItemLocation[]>  {
 		if ( this.open_container != null ) {
 			await this.bot.closeWindow(this.open_container)
 		}
@@ -302,8 +302,7 @@ export class Player {
 
 	async inventory_add(item: types.ItemLocation) {
 		// if location already contains item, add to count
-		let player_item = this.inventory.find((i: any) => i.item.id === item.item.id)
-
+		let player_item = this.inventory.find((i: types.ItemLocation) => i.location.slot === item.location.slot)
 		if (player_item) {
 			player_item.count += item.count
 			return

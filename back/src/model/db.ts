@@ -29,6 +29,15 @@ export async function init_tables() {
     console.log("Tables initialized")
 }
 
+export async function get_item_info(item_id: number): Promise<types.Item> {
+    try {
+        const request = await pool.query("SELECT * FROM items WHERE id = $1", [item_id])
+        return request["rows"][0]
+    } catch(err) {
+        throw(err)
+    }
+}
+
 export async function get_items(): Promise<types.ItemLocation[]> {
     try {
         const request = await pool.query("SELECT * FROM locations JOIN items ON locations.item_id = items.id")

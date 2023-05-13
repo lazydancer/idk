@@ -31,8 +31,6 @@ export async function move(player: any, requests: types.MoveItem[]) {
         await deposit(player, chunk)
     }
 
-
-
 }
     
 async function collect(player: any, requests: types.MoveItem[]) {
@@ -41,10 +39,18 @@ async function collect(player: any, requests: types.MoveItem[]) {
 
     console.log("request collect", requests.filter( (r: any) => r.from.shulker_slot == null))
 
+    let open_chest = null
     for (let req of requests.filter( (r: any) => r.from.shulker_slot == null)) {
-        await player.open(req.from.chest_type, req.from.chest)
+
+        if (open_chest == null || open_chest.chest != req.from.chest || open_chest.chest_type != req.from.chest_type) {
+            await player.open(req.from.chest_type, req.from.chest)
+            open_chest = {chest_type: req.from.chest_type, chest: req.from.chest}
+        }
+        
         const to_slot = await open_slot(player.inventory, req, player_inventory_size)
+        
         await clicks_move_item(player, req.from.slot, double_chest_inventory_start + to_slot, req.count)
+
         player.inventory_add({item: req.item, location: {chest_type: types.ChestType.Player, chest: 0, slot: to_slot, shulker_slot: req.to.shulker_slot}, count: req.count})
     }
 }
@@ -53,11 +59,16 @@ async function deposit(player: any, requests: types.MoveItem[]) {
     const to_shulker = requests.filter( (r: any) => (r.to.shulker_slot != null))  
     await move_items_into_shulkers(player, to_shulker)
 
+    let open_chest = {chest_type: types.ChestType.Player, chest: 0}
+    let inventory: types.ItemLocation[] = []
 
     for (let req of requests.filter( (r: any) => (r.to.shulker_slot == null))) {
-        let inventory = await player.open(req.to.chest_type, req.to.chest)
+        if (open_chest == null || open_chest.chest != req.to.chest || open_chest.chest_type != req.to.chest_type) {
+            inventory = await player.open(req.to.chest_type, req.to.chest)
+            open_chest = {chest_type: req.to.chest_type, chest: req.to.chest}
+        }
 
-        let player_item = player.inventory.find( (x: any) => x.item == req.item && x.count >= req.count)
+        const player_item = player.inventory.find( (x: any) => x.item == req.item && x.count >= req.count)
 
         if(!player_item) {
             throw new Error(`Player does not have ${req.count} ${req.item.name}`)
@@ -68,8 +79,20 @@ async function deposit(player: any, requests: types.MoveItem[]) {
 
         await clicks_move_item(player, from_slot, to_slot, req.count)
 
+        console.log("inventory", inventory)
+
+		// update inventory
+		const item: any = inventory.find((i: types.ItemLocation) => i.location.slot === to_slot)
+        console.log("item", item)
+		if (item) {
+			item.count += req.count
+		} else {
+            if (req) {
+                inventory.push({item: req.item, location: {chest_type: req.to.chest_type, chest: req.to.chest, slot: to_slot, shulker_slot: req.to.shulker_slot}, count: req.count})
+            }
+        }
+
         player.inventory_remove(player_item, req.count)
- 
     }
 
 }
