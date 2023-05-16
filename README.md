@@ -14,7 +14,10 @@ Deposit and withdraw items from storage. All the items are shown on a website an
 
 ## About
 
-Divided into 3 parts: website, inventory / database and minecraft player / storage 
+Divided into 3 parts:
+ - Website
+ - Inventory
+ - Player
 
 ### Website
 
@@ -24,7 +27,7 @@ This displays and controls the items available in your inventory. Withdraw and d
 
 Built with svelte and tailwind.css,
 
-### Inventory / Database
+### Inventory
 A simple api to take requests from frontend:
 - list
 - withdraw
@@ -34,12 +37,12 @@ Model of the inventory system and a majority of the logic. Takes the inputs abov
 
 Built with: typescript and postgres 
 
-### Minecraft Player / Storage
+### Player
 
 ![Storage](https://github.com/lazydancer/idk/blob/main/img/Screenshot%20from%202022-10-02%2009-06-44.png?raw=true)
 
 Base action performer, listens for requests from inventory takes the following actions:
-- move (moves the players position by a breath first pathing)
+- move (moves the players position by a breadth-first pathing)
 - open 
 - close
 - left click
@@ -55,19 +58,10 @@ Since this is a personal project, sorry I haven't spend much time to help with i
 
 - Local minecraft server running 1.19.3
 - A minecraft account, user/pass are stored as environment variable
-- Running a minecraft server with the chests set up. (config in player.ts)
-- Postgres with a table with the follwing schema. (config in db.ts)
-        metadata - int4
-        nbt - jsonb
-        name - varchar
-        display_name - varchar
-        stack_size - int4
-        slot - int4
-        count - int4
-        chest - int4
-        shulker_slot - int4
+- A minecraft server with the chests set up. (config in player.ts)
+- Postgres database (config in db.ts)
 
 To run,
-Start Website: cd front, npm install, npm run dev
-cd ..
-Start Bot: cd back, npm install, npm start
+- Start Website: cd front, npm install, npm run dev
+- cd ..
+= Start Bot: cd back, npm install, npm start
