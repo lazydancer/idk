@@ -96,58 +96,57 @@ function inventory_score(inventory: types.ItemLocation[]): number {
     return shulker_utilization_weight * shulker_utilization + slot_utilization_weight * slot_utilization - retrieval_time_weight * average_unique_items
 }
 
-function random_next_move(inventory: types.ItemLocation[]): types.MoveItem {
 
-    // select a random item
-    const item = inventory[Math.floor(Math.random() * inventory.length)]
+function next_move(inventory: types.ItemLocation[]): types.MoveItem {
+  // Select a random item
+  const item = inventory[Math.floor(Math.random() * inventory.length)];
 
-    // select a random destination
-    const chest = Math.floor(Math.random() * INVENTORY_SIZE)
-    const slot = Math.floor(Math.random() * 54)
-    const count = Math.floor(Math.random() * item.count)
+  // If the item is a shulker box, try again
+  if (item.item.name.endsWith("shulker_box")) {
+    return next_move(inventory);
+  }
 
-    let shulker_slot: number | null = (Math.floor(Math.random() * 28)) - 1 // -1 means no shulker slot
-    if(shulker_slot === -1) {
-        shulker_slot = null
+  // Select a random destination
+  const chest = Math.floor(Math.random() * INVENTORY_SIZE);
+  const slot = Math.floor(Math.random() * 54);
+  const shulker_slot = Math.random() < 0.5 ? null : Math.floor(Math.random() * 27);
+
+  // Find an item to move to the destination
+  const to_move = inventory.find(item => item.location.chest === chest && item.location.slot === slot && item.location.shulker_slot === shulker_slot);
+
+  if (shulker_slot !== null) {
+    // Determine if the destination exists (shulker slot with a shulker box)
+    const destination_exists = inventory.find(item => item.location.chest === chest && item.location.slot === slot && item.location.shulker_slot === null && item.item.name.endsWith("shulker_box"));
+    if (!destination_exists) {
+      return next_move(inventory);
     }
+  }
 
-    const move: types.MoveItem = {item: item.item, from: item.location, to: {chest_type: types.ChestType.Inventory, chest, slot, shulker_slot}, count}
-
-    if(valid_move(inventory, move)){
-        return move
+  // Determine how many items to move
+  let count: number;
+  if (!to_move) {
+    // If the destination is empty, try to move the entire stack
+    count = item.count;
+  } else {
+    if (to_move.item.id === item.item.id) {
+      // If the destination is not empty, try to fill the destination
+      count = to_move.item.stack_size - to_move.count;
+    } else {
+      // If the destination has a different item, try again
+      return next_move(inventory);
     }
+  }
 
-    return random_next_move(inventory)
+  // If the count is 0, try again
+  if (count === 0) {
+    return next_move(inventory);
+  }
+
+  // Create and return the move
+  return { item: item.item, from: item.location, to: { chest_type: types.ChestType.Inventory, chest, slot, shulker_slot }, count };
 
 }
 
-function valid_move(inventory: types.ItemLocation[], move: types.MoveItem): boolean {
-    // can't move an item if the destination is full or has a different item
-    const destination = inventory.find(item => item.location.chest === move.to.chest && item.location.slot === move.to.slot && item.location.shulker_slot === move.to.shulker_slot)
-    if(destination) {
-        if(destination.item.id !== move.item.id) {
-            return false
-        }
-        if(destination.count + move.count > move.item.stack_size) {
-            return false
-        }
-    }
-    if (move.to.shulker_slot !== null) {
-        const shulker_box = inventory.find(item => item.location.chest === move.to.chest && item.location.slot === move.to.slot && item.location.shulker_slot === null)
-        if(!shulker_box) {
-            return false
-        }
-    }
-
-    if (move.item.name.endsWith("shulker_box")) {
-        // avoid moving the shulker boxes around, many additional contraints needed but probably not worth it
-        return false
-    }
-
- 
-    return true
-
-}
 
 function a_star(inventory: types.ItemLocation[], limit: number): types.MoveItem[] {
     // Define the A* search node
@@ -197,7 +196,7 @@ function a_star(inventory: types.ItemLocation[], limit: number): types.MoveItem[
       // Generate the next moves
       const nextMoves = [];
       for (let i = 0; i < 1000; i++) {
-        nextMoves.push(random_next_move(currentNode.inventory));
+        nextMoves.push(next_move(currentNode.inventory));
       }
   
       // Evaluate each next move
