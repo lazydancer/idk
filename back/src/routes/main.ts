@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from "express"
 
 
 import * as inventory from '../inventory/inventory'
-import { take_inventory } from '../inventory/optimize'
+import { take_inventory, sort_inventory } from '../inventory/optimize'
 import * as db from '../model/db'
 import * as types from '../types/types'
 import { daily_cumulative } from '../inventory/item'
@@ -11,14 +11,6 @@ import { daily_cumulative } from '../inventory/item'
 const express = require('express')
 var cors = require('cors')
 const app = express()
-
-// The inventory needs to select a slot to place items in. This is a global variable that is incremented each time a slot is used.
-// It is so bad and I am sorry. I put this here so I will fix it first.
-declare global {
-  var openSlot : number
-}
-globalThis.openSlot = 0
-
 
 export async function run_server() {
   app.use(cors())
@@ -74,6 +66,10 @@ export async function run_server() {
     }
     if (process.argv[2] == "init") {
       await db.init_tables()
+    }
+    if (process.argv[2] == "sort") {
+      // WIP
+      await sort_inventory()
     }
   } 
 

@@ -2,7 +2,6 @@ import * as db from '../model/db'
 import * as types from '../types/types'
 import * as helper from './helper'
 
-
 import { load_config } from '../types/config'
 const config = load_config()
 
@@ -58,7 +57,7 @@ export async function take_inventory() {
 
 }
 
-function _score(inventory: types.ItemLocation[]): number {
+function inventory_score(inventory: types.ItemLocation[]): number {
     /*
     Gives a score to the current inventory state. The higher the score, the better the inventory state.
     
@@ -95,4 +94,160 @@ function _score(inventory: types.ItemLocation[]): number {
     const average_unique_items = unique_items.reduce((a, b) => a + b, 0) / unique_items.length
 
     return shulker_utilization_weight * shulker_utilization + slot_utilization_weight * slot_utilization - retrieval_time_weight * average_unique_items
+}
+
+function random_next_move(inventory: types.ItemLocation[]): types.MoveItem {
+
+    // select a random item
+    const item = inventory[Math.floor(Math.random() * inventory.length)]
+
+    // select a random destination
+    const chest = Math.floor(Math.random() * INVENTORY_SIZE)
+    const slot = Math.floor(Math.random() * 54)
+    const count = Math.floor(Math.random() * item.count)
+
+    let shulker_slot: number | null = (Math.floor(Math.random() * 28)) - 1 // -1 means no shulker slot
+    if(shulker_slot === -1) {
+        shulker_slot = null
+    }
+
+    const move: types.MoveItem = {item: item.item, from: item.location, to: {chest_type: types.ChestType.Inventory, chest, slot, shulker_slot}, count}
+
+    if(valid_move(inventory, move)){
+        return move
+    }
+
+    return random_next_move(inventory)
+
+}
+
+function valid_move(inventory: types.ItemLocation[], move: types.MoveItem): boolean {
+    // can't move an item if the destination is full or has a different item
+    const destination = inventory.find(item => item.location.chest === move.to.chest && item.location.slot === move.to.slot && item.location.shulker_slot === move.to.shulker_slot)
+    if(destination) {
+        if(destination.item.id !== move.item.id) {
+            return false
+        }
+        if(destination.count + move.count > move.item.stack_size) {
+            return false
+        }
+    }
+    if (move.to.shulker_slot !== null) {
+        const shulker_box = inventory.find(item => item.location.chest === move.to.chest && item.location.slot === move.to.slot && item.location.shulker_slot === null)
+        if(!shulker_box) {
+            return false
+        }
+    }
+
+    if (move.item.name.endsWith("shulker_box")) {
+        // avoid moving the shulker boxes around, many additional contraints needed but probably not worth it
+        return false
+    }
+
+ 
+    return true
+
+}
+
+function a_star(inventory: types.ItemLocation[], limit: number): types.MoveItem[] {
+    // Define the A* search node
+    interface Node {
+      inventory: types.ItemLocation[];
+      g: number;
+      h: number;
+      f: number;
+      parent?: Node;
+      move?: types.MoveItem;
+    }
+    
+    // Define the start node
+    const startNode: Node = {
+      inventory,
+      g: 0,
+      h: inventory_score(inventory),
+      f: inventory_score(inventory),
+    };
+  
+
+    // Define the open and closed sets
+    const openSet: Node[] = [startNode];
+    const closedSet: Node[] = [];
+  
+    // Define the main loop
+    let moves = 0;
+    while (openSet.length > 0 ) {
+      // Find the node with the highest f score
+      const currentNode = openSet.reduce((a, b) => (a.f > b.f ? a : b));
+  
+      // If the goal has been reached, return the path
+      if (currentNode.h === 0 || moves > limit) {
+        const path: types.MoveItem[] = [];
+        let node: Node | undefined = currentNode;
+        while (node?.parent) {
+          path.unshift(node.move!);
+          node = node.parent;
+        }
+        return path;
+      }
+  
+      // Move the current node from the open set to the closed set
+      openSet.splice(openSet.indexOf(currentNode), 1);
+      closedSet.push(currentNode);
+  
+      // Generate the next moves
+      const nextMoves = [];
+      for (let i = 0; i < 1000; i++) {
+        nextMoves.push(random_next_move(currentNode.inventory));
+      }
+  
+      // Evaluate each next move
+      for (const nextMove of nextMoves) {
+        // Apply the next move to generate the next inventory
+        const nextInventory = helper.apply_moves(types.ChestType.Inventory, currentNode.inventory, [nextMove]);
+
+        // Create the next node
+        const nextNode: Node = {
+          inventory: nextInventory,
+          g: currentNode.g + 1,
+          h: inventory_score(nextInventory),
+          f: currentNode.g + 1 + inventory_score(nextInventory),
+          parent: currentNode,
+          move: nextMove,
+        };
+  
+        // If the next node is already in the closed set, skip it
+        if (closedSet.some((node) => helper.equal_inventories(node.inventory, nextInventory))) {
+          continue;
+        }
+  
+        // If the next node is not in the open set, add it
+        const existingNode = openSet.find((node) => helper.equal_inventories(node.inventory, nextInventory));
+        if (!existingNode) {
+          openSet.push(nextNode);
+        } else if (nextNode.g < existingNode.g) {
+          // If the next node is in the open set and has a lower g score, update it
+          existingNode.g = nextNode.g;
+          existingNode.f = nextNode.f;
+          existingNode.parent = nextNode.parent;
+          existingNode.move = nextNode.move;
+        }
+      }
+
+      moves++;
+    }
+  
+    // If the goal cannot be reached, return the original inventory
+    return [];
+  }
+
+
+export async function sort_inventory() {
+    const inventory = await db.get_items()
+
+    console.log("starting sort", inventory_score(inventory))
+
+    const moves = a_star(inventory, 2)
+
+    console.log("recommended", moves, inventory_score(helper.apply_moves(types.ChestType.Inventory, inventory, moves)))
+
 }
