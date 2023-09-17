@@ -1,7 +1,7 @@
 <br/>
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/lazydancer/idk/0979dcfd4745d6a4848bcd430e977de8bd648d6f/img/logo.svg" width="80"/><p></p>
+<img src="https://raw.githubusercontent.com/lazydancer/idk/0979dcfd4745d6a4848bcd430e977de8bd648d6f/img/fourth.gif"/><p></p>
 
 idk is a minecraft inventory bot. 
 
