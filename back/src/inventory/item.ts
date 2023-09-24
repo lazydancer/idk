@@ -15,7 +15,6 @@ export async function summarize(item: types.Item, inventory: types.ItemLocation[
   
 }
 
-
 export function daily_cumulative(history: any[]): any[] {
     // get item history
 

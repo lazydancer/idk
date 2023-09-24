@@ -312,7 +312,7 @@ export class Player {
 		this.inventory.push(item)
 	}
 
-	async inventory_remove(item: types.ItemLocation) {
+	async inventory_remove(item: types.ItemLocation, count: number) {
 
 		let player_item = this.inventory.find((i: any) => i.item.id === item.item.id)
 
@@ -321,7 +321,7 @@ export class Player {
 		}
 
 		// remove items from player inventory
-		player_item.count -= item.count
+		player_item.count -= count
 
 		if (player_item.count === 0) {
 			this.inventory.splice(this.inventory.indexOf(player_item), 1);

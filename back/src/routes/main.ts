@@ -3,10 +3,9 @@ import { NextFunction, Request, Response } from "express"
 
 
 import * as inventory from '../inventory/inventory'
-import { take_inventory, sort_inventory } from '../inventory/optimize'
+import { take_inventory } from '../inventory/optimize'
 import * as db from '../model/db'
 import * as types from '../types/types'
-import { daily_cumulative } from '../inventory/item'
 
 const express = require('express')
 var cors = require('cors')
@@ -66,10 +65,6 @@ export async function run_server() {
     }
     if (process.argv[2] == "init") {
       await db.init_tables()
-    }
-    if (process.argv[2] == "sort") {
-      // WIP
-      await sort_inventory()
     }
   } 
 

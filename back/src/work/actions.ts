@@ -68,7 +68,7 @@ async function deposit(player: any, requests: types.MoveItem[]) {
             open_chest = {chest_type: req.to.chest_type, chest: req.to.chest}
         }
 
-        const player_item = player.inventory.find( (x: any) => x.item == req.item && x.count >= req.count)
+        const player_item = player.inventory.find( (x: any) => x.item.id == req.item.id && x.count >= req.count)
 
         if(!player_item) {
             throw new Error(`Player does not have ${req.count} ${req.item.name}`)
@@ -78,8 +78,6 @@ async function deposit(player: any, requests: types.MoveItem[]) {
         const to_slot = req.to.chest_type === types.ChestType.Station ? open_slot(inventory, req, double_chest_size) : req.to.slot;
 
         await clicks_move_item(player, from_slot, to_slot, req.count)
-
-        console.log("inventory", inventory)
 
 		// update inventory
 		const item: any = inventory.find((i: types.ItemLocation) => i.location.slot === to_slot)
@@ -217,7 +215,6 @@ function open_slot(inventory: types.ItemLocation[], item: types.MoveItem, invent
      * Else move the items to the first available open slot.
      */
 
-    console.log("open_slot", item, inventory, inventory_size)
 
     // Try to find existing item
     let existing = inventory.findIndex((i: any) => i && i.item.id === item.item.id && i.item.stack_size - i.count >= item.count)
