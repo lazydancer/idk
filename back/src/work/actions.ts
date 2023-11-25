@@ -2,8 +2,6 @@ import { get } from 'http'
 import * as types from '../types/types'
 import { get_item_ids } from '../model/db'
 
-
-
 const shulker_inventory_start = 27
 const double_chest_inventory_start = 54
 
@@ -40,17 +38,19 @@ async function collect(player: any, requests: types.MoveItem[]) {
     console.log("request collect", requests.filter( (r: any) => r.from.shulker_slot == null))
 
     let open_chest = null
+    let inventory = null
     for (let req of requests.filter( (r: any) => r.from.shulker_slot == null)) {
 
         if (open_chest == null || open_chest.chest != req.from.chest || open_chest.chest_type != req.from.chest_type) {
-            await player.open(req.from.chest_type, req.from.chest)
+            inventory = await player.open(req.from.chest_type, req.from.chest)
             open_chest = {chest_type: req.from.chest_type, chest: req.from.chest}
         }
         
         const to_slot = await open_slot(player.inventory, req, player_inventory_size)
-        
-        await clicks_move_item(player, req.from.slot, double_chest_inventory_start + to_slot, req.count)
 
+        const item: any = inventory.find((i: types.ItemLocation) => i.location.slot === req.from.slot)
+        await clicks_move_item(player, req.from.slot, double_chest_inventory_start + to_slot, req.count, item.count)
+        
         player.inventory_add({item: req.item, location: {chest_type: types.ChestType.Player, chest: 0, slot: to_slot, shulker_slot: req.to.shulker_slot}, count: req.count})
     }
 }
@@ -77,7 +77,7 @@ async function deposit(player: any, requests: types.MoveItem[]) {
         const from_slot = double_chest_inventory_start + player_item.location.slot;
         const to_slot = req.to.chest_type === types.ChestType.Station ? open_slot(inventory, req, double_chest_size) : req.to.slot;
 
-        await clicks_move_item(player, from_slot, to_slot, req.count)
+        await clicks_move_item(player, from_slot, to_slot, req.count, player_item.count)
 
 		// update inventory
 		const item: any = inventory.find((i: types.ItemLocation) => i.location.slot === to_slot)
@@ -134,10 +134,13 @@ async function move_items_out_of_shulkers(player: any, requests: types.MoveItem[
     for (const key in grouped) {
         const first_move = grouped[key][0]
 
-        await player.open_shulker(first_move.from.chest_type, first_move.from.chest, first_move.from.slot)
+        const shulker_inventory = await player.open_shulker(first_move.from.chest_type, first_move.from.chest, first_move.from.slot)
         for( let [i, move] of grouped[key].entries() ) {
             let to_slot = open_slot(player.inventory, move.item, player_inventory_size)
-            await clicks_move_item(player, move.from.shulker_slot!, shulker_inventory_start + to_slot, move.count)
+
+            const item: any = shulker_inventory.find((i: types.ItemLocation) => i.location.slot === move.from.shulker_slot)
+            await clicks_move_item(player, move.from.shulker_slot!, shulker_inventory_start + to_slot, move.count, item.count)
+            
             player.inventory_add({item: move.item, location: {chest_type: types.ChestType.Player, chest: 0, slot: to_slot, shulker_slot: null}, count: move.count})
         }
         await player.close_shulker()
@@ -164,13 +167,14 @@ async function move_items_into_shulkers(player: any, requests: types.MoveItem[])
         )
 
         if (found) {
-            await player.open(move.from.chest_type, move.from.chest)
+            let chest_inventory = await player.open(move.from.chest_type, move.from.chest)
+            const item: any = chest_inventory.find((i: types.ItemLocation) => i.location.slot === move.from.slot)
 
-            await clicks_move_item(player, move.from.slot, double_chest_inventory_start, move.count)
+            await clicks_move_item(player, move.from.slot, double_chest_inventory_start, move.count, item.count)
 
             await player.open_shulker(found.from.chest_type, found.from.chest, found.from.slot)
 
-            await clicks_move_item(player, shulker_inventory_start, move.to.shulker_slot!, move.count)
+            await clicks_move_item(player, shulker_inventory_start, move.to.shulker_slot!, move.count, item.count)
 
             await player.close_shulker()
 
@@ -183,16 +187,16 @@ async function move_items_into_shulkers(player: any, requests: types.MoveItem[])
                 count: move.count,
             })
 
-
         } else {
             // "actions" has to trust "inventory" that a shulker is already there
-            await player.open(move.from.chest_type, move.from.chest)
+            let chest_inventory = await player.open(move.from.chest_type, move.from.chest)
+            const item: any = chest_inventory.find((i: types.ItemLocation) => i.location.slot === move.from.slot)
 
-            await clicks_move_item(player, move.from.slot, double_chest_inventory_start, move.count)
+            await clicks_move_item(player, move.from.slot, double_chest_inventory_start, move.count, item.count)
 
             await player.open_shulker(move.to.chest_type, move.to.chest, move.to.slot)
 
-            await clicks_move_item(player, shulker_inventory_start, move.to.shulker_slot!, move.count)
+            await clicks_move_item(player, shulker_inventory_start, move.to.shulker_slot!, move.count, item.count)
 
             await player.close_shulker()
         }
@@ -235,20 +239,31 @@ function open_slot(inventory: types.ItemLocation[], item: types.MoveItem, invent
 
 
 
-async function clicks_move_item(player: any, from_slot: number, to_slot: number, count: number) {
-    await player.lclick(from_slot)
-
-    if (count == 64) {
-        await player.lclick(to_slot)
+async function clicks_move_item(player: any, from_slot: number, to_slot: number, count: number, from_slot_count: number) {
+    if (count === from_slot_count) {
+        await player.lclick(from_slot);
+        await player.lclick(to_slot);
     } else {
-        for (let _a = 0; _a < count; _a += 1) {
-            await player.rclick(to_slot)
+        if (count > Math.ceil(from_slot_count / 2)) {
+            await player.lclick(from_slot); 
+
+            let excess_count = from_slot_count - count;
+            for (let i = 0; i < excess_count; i++) {
+                await player.rclick(from_slot); // Place back excess items.
+            }
+
+            await player.lclick(to_slot);
+        } else {
+            await player.rclick(from_slot); // Pick up half of the items.
+
+            for (let i = 0; i < count; i++) {
+                await player.rclick(to_slot);
+            }
+
+            await player.lclick(from_slot);
         }
     }
-    
-    await player.lclick(from_slot)
 }
-
 
 
 export async function survey(player: any, chest_type: types.ChestType, chest: number) {

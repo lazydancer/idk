@@ -25,7 +25,7 @@ export async function take_inventory() {
                     if (matchingItem.count !== surveyed.count) {
                         console.log("ERROR: Item count does not match")
                         console.log(matchingItem)
-                        console.log("surveyed: " + surveyed)
+                        console.log("surveyed: " + JSON.stringify(surveyed))
                     }
                 } else {
                     console.log("ERROR: Item not in database")
@@ -53,6 +53,5 @@ export async function take_inventory() {
         const job_id = await db.add_job(types.JobType.Survey, {chest_type: types.ChestType.Inventory, chest: i})
         checkJobStatus(job_id)
     }
-
 
 }
