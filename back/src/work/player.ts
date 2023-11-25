@@ -66,8 +66,8 @@ export class Player {
 	async lclick(slot: any) {
 		await this.bot.simpleClick.leftMouse(slot)
 
-		// Does not wait for confirmation
-		await new Promise(r => setTimeout(r, 100));
+		// There is no confirmation of click, so wait a bit
+		await new Promise(r => setTimeout(r, 50));
 
 		return "done";
 	}
@@ -75,8 +75,8 @@ export class Player {
 	async rclick(slot: any) {
 		await this.bot.simpleClick.rightMouse(slot)
 
-		// Does not wait for confirmation
-		await new Promise(r => setTimeout(r, 100));
+		// There is no confirmation of click, so wait a bit
+		await new Promise(r => setTimeout(r, 50));
 
 		return "done";
 	}

@@ -26,7 +26,7 @@ export async function move(player: any, requests: types.MoveItem[]) {
 
     for (let chunk of chunks) {
         await collect(player, chunk)
-        await deposit(player, chunk)
+        await stash(player, chunk)
     }
 
 }
@@ -55,7 +55,7 @@ async function collect(player: any, requests: types.MoveItem[]) {
     }
 }
 
-async function deposit(player: any, requests: types.MoveItem[]) {
+async function stash(player: any, requests: types.MoveItem[]) {
     const to_shulker = requests.filter( (r: any) => (r.to.shulker_slot != null))  
     await move_items_into_shulkers(player, to_shulker)
 
@@ -244,7 +244,8 @@ async function clicks_move_item(player: any, from_slot: number, to_slot: number,
         await player.lclick(from_slot);
         await player.lclick(to_slot);
     } else {
-        if (count > Math.ceil(from_slot_count / 2)) {
+        let right_click_amount = Math.ceil(from_slot_count / 2)
+        if (count > right_click_amount) {
             await player.lclick(from_slot); 
 
             let excess_count = from_slot_count - count;
@@ -260,7 +261,9 @@ async function clicks_move_item(player: any, from_slot: number, to_slot: number,
                 await player.rclick(to_slot);
             }
 
-            await player.lclick(from_slot);
+            if(count < right_click_amount) {
+                await player.lclick(from_slot); // Place back excess items.
+            }
         }
     }
 }

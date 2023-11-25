@@ -55,9 +55,6 @@ export class Worker {
                         break;
 
                     case types.JobType.Survey:
-                        const parameters = job.parameters;
-                        const deposit = parameters.deposit
-                        
                         const items = await actions.survey(this.player, job.parameters.chest_type, job.parameters.chest);
                         await db.get_item_ids(items.map((i: any) => i.item))
                         await db.add_survey(job.id, items)

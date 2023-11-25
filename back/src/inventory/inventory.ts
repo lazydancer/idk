@@ -27,7 +27,6 @@ export async function withdraw(items: types.ItemCount[], station: number): Promi
         }
     })
 
-    console.log("moves", moves)
     return moves
 }
 

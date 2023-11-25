@@ -59,6 +59,29 @@ export async function run_server() {
     res.send({'status': 'ok'})
   })
 
+  app.post('/api/survey', async function (req: AuthenticatedRequest, res: Response) {
+    const request = {
+      chest_type: types.ChestType.Station,
+      chest: req.station_id,
+    }
+
+    const id = await db.add_job(types.JobType.Survey, request)
+    res.send({'status': 'ok', 'job_id': id})
+  })
+
+  app.get('/api/job/:job_id', async function (req: AuthenticatedRequest, res: Response) {
+
+    const job = await db.get_job(parseInt(req.params.job_id,10))
+
+    if (job.type === types.JobType.Survey && job.status === types.JobStatus.Completed) {
+      const items = await inventory.get_survey(parseInt(req.params.job_id,10))
+      res.send({job, items})
+    } else {
+      res.send({job})
+    }
+
+  })
+
   if (process.argv.length > 2) {
     if (process.argv[2] == "inventory") {
       await take_inventory()
