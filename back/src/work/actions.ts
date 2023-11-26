@@ -1,4 +1,3 @@
-import { get } from 'http'
 import * as types from '../types/types'
 import { get_item_ids } from '../model/db'
 
@@ -15,7 +14,17 @@ export async function move(player: any, requests: types.MoveItem[]) {
     requests = structuredClone(requests) // requests is used again outside of this function
 
     // remove any requests that are in a shulker to be moved within the shulker
-    requests = remove_moves_within_shulker(requests)
+    requests = remove_moves_with_shulker(requests)
+
+    // If internal dependency in request perform request in order
+    if (check_for_dependencies(requests)) {
+        console.log("dependencies found")
+        for (let request of requests) {
+            await collect(player, [request])
+            await stash(player, [request])
+        }
+        return
+    }
 
     // sort by chest and slot
     requests.sort((a, b) =>  (a.from.chest_type - b.from.chest_type) || (a.from.chest - b.from.chest) || (a.from.slot - b.from.slot) )
@@ -94,8 +103,26 @@ async function stash(player: any, requests: types.MoveItem[]) {
 
 }
 
+function check_for_dependencies(requests: types.MoveItem[]): boolean {
+    for(let i = 0; i < requests.length; i++) {
+        for(let j = i+1; j < requests.length; j++) {
+            if (requests[i].to.chest_type == requests[j].from.chest_type
+                && requests[i].to.chest == requests[j].from.chest
+                && requests[i].to.slot == requests[j].from.slot) {
+                return true
+            }
+            if(requests[i].from.chest_type == requests[j].to.chest_type
+                && requests[i].from.chest == requests[j].to.chest
+                && requests[i].from.slot == requests[j].to.slot) {
+                return true
+            }
+        }
+    }
 
-function remove_moves_within_shulker(requests: types.MoveItem[]) {
+    return false
+}
+
+function remove_moves_with_shulker(requests: types.MoveItem[]) {
     const shulkers = requests.filter( (r: any) => r.item.name.endsWith("shulker_box"));
 
     let indexes_to_remove: any[] = []
@@ -335,9 +362,7 @@ function shulkerContents(input: any): types.ItemLocation[] {
       });
     }
     
-    console.log(output)
     get_item_ids(output.map((x: any) => x.item))
-    console.log(output)
 
 
     return output;

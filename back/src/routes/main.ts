@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from "express"
 
 
 import * as inventory from '../inventory/inventory'
-import { take_inventory } from '../inventory/optimize'
+import { take_inventory, optimize_inventory } from '../inventory/optimize'
 import * as db from '../model/db'
 import * as types from '../types/types'
 
@@ -88,6 +88,9 @@ export async function run_server() {
     }
     if (process.argv[2] == "init") {
       await db.init_tables()
+    }
+    if (process.argv[2] == "optimize") {
+      await optimize_inventory()
     }
   } 
 

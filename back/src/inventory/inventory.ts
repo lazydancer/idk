@@ -64,7 +64,7 @@ export async function get_survey(job_id: number): Promise<types.ItemCount[]> {
 
 
 
-function summarize(inventory: types.ItemLocation[]): types.ItemCount[] {
+export function summarize(inventory: types.ItemLocation[]): types.ItemCount[] {
     return inventory.filter(x => !x.item.name.endsWith("shulker_box")).reduce((acc: any, x) => {
         const existing = acc.find((y:any) => y.item.id === x.item.id);
         if (existing) {
@@ -86,7 +86,7 @@ function summarize(inventory: types.ItemLocation[]): types.ItemCount[] {
       }, []);
 }
 
-function get_item_locations(items: {item: types.Item, count: number}[], inventory: types.ItemLocation[]): types.ItemLocation[] {
+export function get_item_locations(items: types.ItemCount[], inventory: types.ItemLocation[]): types.ItemLocation[] {
 
     let selectedItems: types.ItemLocation[] = [];
     
@@ -96,7 +96,6 @@ function get_item_locations(items: {item: types.Item, count: number}[], inventor
         let remainingCount = count
         
         // First if there are any shulkers with the item, take those
-        let shulker_count = Math.floor(count / ( 27 * item.stack_size ) )
         let fullShulkers = helper.get_full_shulkers(inventory).filter( x => x.inner_item.id === item.id)
 
         for (const shulker of fullShulkers) {
@@ -160,8 +159,6 @@ function get_item_locations(items: {item: types.Item, count: number}[], inventor
 
         }
     }
-
-    console.log(selectedItems)
 
     return selectedItems
 

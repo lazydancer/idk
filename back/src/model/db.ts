@@ -234,8 +234,10 @@ export async function apply_ownership(user_id: number, moves: types.MoveItem[]):
                 await pool.query(`INSERT INTO ownership (user_id, item_id, count, status) VALUES ($1, $2, $3, 'Open')`, [user_id, move.item.id, move.count]);
             }
         } else {
-            if (ownership.rowCount > 0 && ownership.rows[0].count >= move.count) {
+            if (ownership.rowCount > 0 && ownership.rows[0].count > move.count) {
                 await pool.query(`UPDATE ownership SET count = count - $1 WHERE user_id = $2 AND item_id = $3 AND status = 'Open'`, [move.count, user_id, move.item.id]);
+            } else if ( ownership.rowCount > 0 && ownership.rows[0].count === move.count) {
+                await pool.query(`DELETE FROM ownership WHERE user_id = $1 AND item_id = $2 AND status = 'Open'`, [user_id, move.item.id]);
             } else {
                 throw new Error('Ownership not found or insufficient count');
             }
