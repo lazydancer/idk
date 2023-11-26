@@ -164,7 +164,7 @@ async function move_items_out_of_shulkers(player: any, requests: types.MoveItem[
         for( let [i, move] of grouped[key].entries() ) {
             let to_slot = open_slot(player.inventory, move.item, player_inventory_size)
 
-            const item: any = shulker_inventory.find((i: types.ItemLocation) => i.location.slot === move.from.shulker_slot)
+            const item: any = shulker_inventory.find((i: types.ItemLocation) => i.location.shulker_slot === move.from.shulker_slot)
             await clicks_move_item(player, move.from.shulker_slot!, shulker_inventory_start + to_slot, move.count, item.count)
             
             player.inventory_add({item: move.item, location: {chest_type: types.ChestType.Player, chest: 0, slot: to_slot, shulker_slot: null}, count: move.count})

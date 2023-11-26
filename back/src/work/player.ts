@@ -155,7 +155,7 @@ export class Player {
 			},
 			count: o.count,
 		}))
-		
+
 		await get_item_ids(items.map((i: any) => i.item))
 
 		return items
