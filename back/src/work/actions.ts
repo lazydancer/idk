@@ -81,7 +81,6 @@ async function stash(player: any, requests: types.MoveItem[]) {
 
 		// update inventory
 		const item: any = inventory.find((i: types.ItemLocation) => i.location.slot === to_slot)
-        console.log("item", item)
 		if (item) {
 			item.count += req.count
 		} else {
@@ -215,16 +214,8 @@ async function move_items_into_shulkers(player: any, requests: types.MoveItem[])
 function open_slot(inventory: types.ItemLocation[], item: types.MoveItem, inventory_size: number): number {
     /**
      * Given an item and an inventory, returns a list of moves that move the item to the first available slot in the inventory.
-     * If there is an existing slot that already contain the item, then move items to that slot.
-     * Else move the items to the first available open slot.
+     * Will not stack on non-full existing item to ensure consistency with the database.
      */
-
-
-    // Try to find existing item
-    let existing = inventory.findIndex((i: any) => i && i.item.id === item.item.id && i.item.stack_size - i.count >= item.count)
-    if (existing !== -1) {
-        return inventory[existing].location.slot
-    }
 
     // Then find open spaces
     for (let i = 0; i < inventory_size; i++) {

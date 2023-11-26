@@ -24,7 +24,7 @@ export async function init_tables() {
     await pool.query("CREATE TABLE IF NOT EXISTS queue (id serial4 NOT NULL, \"type\" text NOT NULL, parameters jsonb NULL, status text NOT NULL DEFAULT 'queued'::text, created_at timestamp NOT NULL DEFAULT now(), started_at timestamp NULL, completed_at timestamp NULL, CONSTRAINT queue_pkey PRIMARY KEY (id))")
     await pool.query("CREATE TABLE IF NOT EXISTS surveyed (slot int4, count int4, chest int4, shulker_slot int4, item_id int4, \"date\" timestamp DEFAULT now(), chest_type int4, job_id int4)")
     await pool.query("CREATE TABLE IF NOT EXISTS users (id serial4, \"name\" varchar(255), token varchar, station_id int4 NULL, CONSTRAINT users_pkey PRIMARY KEY (id));")
-    await pool.query("CREATE TABLE IF NOT EXISTS ownership (user_id int4 NULL, item_id int4 NULL, count int4 NULL);")
+    await pool.query("CREATE TABLE IF NOT EXISTS ownership (user_id int4 NULL, item_id int4 NULL, count int4 NULL, state varchar NULL);")
 
     console.log("Tables initialized")
 }
@@ -38,7 +38,7 @@ export async function get_item_info(item_id: number): Promise<types.Item> {
     }
 }
 
-export async function get_items(): Promise<types.ItemLocation[]> {
+export async function get_inventory_items(): Promise<types.ItemLocation[]> {
     try {
         const request = await pool.query("SELECT * FROM locations JOIN items ON locations.item_id = items.id")
 
@@ -68,6 +68,31 @@ export async function get_items(): Promise<types.ItemLocation[]> {
         throw(err)
     }
 } 
+
+
+export async function get_user_items(user_id: number): Promise<types.ItemCount[]> {
+    try {
+        const request = await pool.query(`SELECT * FROM ownership JOIN items ON ownership.item_id = items.id WHERE ownership.user_id = $1 AND ownership.status = 'Open'`, [user_id])
+
+        return request["rows"].map( x => (
+            {
+                item: {
+                    id: x.item_id,
+                    name: x.name,
+                    metadata: x.metadata,
+                    nbt: x.nbt,
+                    display_name: x.display_name,
+                    stack_size: x.stack_size,
+                },
+                count: x.count,
+            }   
+        ))
+
+    } catch(err) {
+        throw(err)
+    
+    }
+}
 
 // Group items for total counts
 export async function get_summary(): Promise<{item: types.Item, count: number}[]> {
@@ -194,6 +219,29 @@ export async function apply_moves(moves: types.MoveItem[]): Promise<any> {
 
     }
 
+
+}
+
+export async function apply_ownership(user_id: number, moves: types.MoveItem[]): Promise<any> {
+
+    for(const move of moves) {
+        const ownership = await pool.query(`SELECT * FROM ownership WHERE user_id = $1 AND item_id = $2 AND status = 'Open'`, [user_id, move.item.id])
+
+        if (move.to.chest_type === types.ChestType.Inventory) {
+            if (ownership.rowCount > 0) {
+                await pool.query(`UPDATE ownership SET count = count + $1 WHERE user_id = $2 AND item_id = $3 AND status = 'Open'`, [move.count, user_id, move.item.id]);
+            } else {
+                await pool.query(`INSERT INTO ownership (user_id, item_id, count, status) VALUES ($1, $2, $3, 'Open')`, [user_id, move.item.id, move.count]);
+            }
+        } else {
+            if (ownership.rowCount > 0 && ownership.rows[0].count >= move.count) {
+                await pool.query(`UPDATE ownership SET count = count - $1 WHERE user_id = $2 AND item_id = $3 AND status = 'Open'`, [move.count, user_id, move.item.id]);
+            } else {
+                throw new Error('Ownership not found or insufficient count');
+            }
+        }
+
+    }
 
 }
 

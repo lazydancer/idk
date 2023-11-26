@@ -21,12 +21,12 @@ export async function run_server() {
   })
 
   app.get('/api/list', async function (req: AuthenticatedRequest, res: Response) {
-    const items = await inventory.list()
+    const items = await inventory.list(req.user_id)
     res.send(items)
   })
 
   app.get('/api/item/:item_id', async function (req: AuthenticatedRequest, res: Response) {
-    const item = await inventory.item(parseInt(req.params.item_id,10))
+    const item = await inventory.item(parseInt(req.params.item_id,10), req.user_id)
 
     res.send(item)
   })

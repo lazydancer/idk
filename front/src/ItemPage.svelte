@@ -1,10 +1,7 @@
 <script>
-  import { Line } from 'svelte-chartjs'
   import 'chart.js/auto'
 
   import { authFetch } from './auth.js';
-  import { fade } from 'svelte/transition';
-
 
   export let item_id;
 
@@ -16,71 +13,17 @@
       nbt: null,
     },
     count: 0,
-    history: []
   };
 
+  let customWithdrawQty = 0;
 
-  let data = {
-    labels: item.history.map(v => v.date),
-    datasets: [
-      {
-        data: item.history.map(v => v.volume),
-        borderColor: "#c53030",
-      }
-    ],
-  };
-
-  let rows = [
-  { buy_qty: 10, buy: 5, sell: 5, sell_qty: 10 },
-  { buy_qty: 20, buy: 10, sell: 10, sell_qty: 10 },
-  { buy_qty: 30, buy: 15, sell: 15, sell_qty: 10 },
-  { buy_qty: 40, buy: 20, sell: 20, sell_qty: 10 },
-  { buy_qty: 50, buy: 25, sell: 25, sell_qty: 10 },
-];
-
-let price = 0;
-  let qty = 0;
-  
-  function calculateTotalCost() {
-    return price * qty;
-  }
-
-  let show_order_form = false;
 
   import { onMount } from 'svelte';
 
 
   onMount(async () => {
     item = await authFetch(`http://localhost:8000/api/item/${item_id}`);
-        
-    data = {
-      labels: item.history.map(v => v.date),
-      datasets: [
-        {
-          data: item.history.map(v => v.volume),
-          borderColor: "#c53030",
-        }
-      ],
-    };
   });
-
-
-
-
-
-  const options = {
-    plugins: {
-      legend: {
-        display: false
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true
-      }
-    }
-  }
-
 
 
   async function withdraw(count) {
@@ -97,6 +40,10 @@ let price = 0;
       body: JSON.stringify([item_order]),
       headers: { 'Content-Type': 'application/json'}
     })
+  }
+
+  function withdrawCustom() {
+    withdraw(parseInt(customWithdrawQty, 10) || 0);
   }
 
 
@@ -126,6 +73,8 @@ let price = 0;
   <button class="bg-red-700 hover:bg-red-900 text-white py-1 px-2 border-transparent mx-1 {item.count < 1 ? 'opacity-50 cursor-not-allowed' : ''}" on:click={() => withdraw(1)} disabled={item.count < 1}>1</button>
   <button class="bg-red-700 hover:bg-red-900 text-white py-1 px-2 border-transparent mx-1 {item.count < 64 ? 'opacity-50 cursor-not-allowed' : ''}" on:click={() => withdraw(64)} disabled={item.count < 64}>64</button>
   <button class="bg-red-700 hover:bg-red-900 text-white py-1 px-2 border-transparent mx-1 {item.count < 1728 ? 'opacity-50 cursor-not-allowed' : ''}" on:click={() => withdraw(1728)} disabled={item.count < 1728}>1728</button>
+  <input type="number" min="0" max="{item.count}" bind:value={customWithdrawQty} class="border px-2 py-1 mr-2" />
+  <button class="bg-red-700 hover:bg-red-900 text-white py-1 px-2 border-transparent" on:click={withdrawCustom} disabled={customWithdrawQty < 1 || customWithdrawQty > item.count}>Withdraw Custom</button>
 </div>
 
 <!-- <div class="flex pt-4">
@@ -177,9 +126,4 @@ let price = 0;
     </tbody>
   </table>
 </div> 
-
-<div class="max-h-sm pt-8">
-  <Line {data} options={options} />
-</div>
-
 -->

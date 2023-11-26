@@ -1,7 +1,6 @@
 import * as db from '../model/db'
 import * as types from '../types/types'
 import * as helper from './helper'
-import * as item_helper from './item'
 
 import { load_config } from '../types/config'
 const config = load_config()
@@ -14,7 +13,7 @@ const config = load_config()
 
 
 export async function withdraw(items: types.ItemCount[], station: number): Promise<types.MoveItem[]> {
-    const inventory = await db.get_items()
+    const inventory = await db.get_inventory_items()
 
     let selectedItems = get_item_locations(items, inventory)
 
@@ -31,23 +30,28 @@ export async function withdraw(items: types.ItemCount[], station: number): Promi
 }
 
 export async function deposit(items: types.ItemLocation[]): Promise<types.MoveItem[]> { 
-    const inventory = await db.get_items()
+    const inventory = await db.get_inventory_items()
     const moves = get_space_locations(items, inventory)
 
     return moves
 }
 
 
-export async function list(): Promise<{item: types.Item, count: number}[]> {
-    const inventory = await db.get_items()
-    return summarize(inventory)
+export async function list(user_id: number): Promise<{item: types.Item, count: number}[]> {
+    const inventory = await db.get_user_items(user_id)
+    return inventory
 }
 
-export async function item(item_id: number): Promise<{item: types.Item, count: number, history: any }> {
+export async function item(item_id: number, user_id: number): Promise<{item: types.Item, count: number}> {
     const item = await db.get_item_info(item_id)
-    let inventory = await db.get_items()
-    inventory = inventory.filter( (x:any) => x.item.id == item_id)
-    return await item_helper.summarize(item, inventory)
+    let inventory = await db.get_user_items(user_id)
+
+    if(inventory.length === 0) {
+        return {item, count: 0}
+    } else {
+        inventory = inventory.filter( (x:any) => x.item.id == item_id)
+        return {item, count: inventory[0].count}
+    }
 }
 
 
@@ -60,7 +64,7 @@ export async function get_survey(job_id: number): Promise<types.ItemCount[]> {
 
 
 
-function summarize(inventory: types.ItemLocation[]): {item: types.Item, count: number}[] {
+function summarize(inventory: types.ItemLocation[]): types.ItemCount[] {
     return inventory.filter(x => !x.item.name.endsWith("shulker_box")).reduce((acc: any, x) => {
         const existing = acc.find((y:any) => y.item.id === x.item.id);
         if (existing) {

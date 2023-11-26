@@ -8,7 +8,7 @@ const config = load_config()
 const INVENTORY_SIZE = config.build.depth * config.build.width * 6
 
 export async function take_inventory() {
-    const inventory = await db.get_items()
+    const inventory = await db.get_inventory_items()
 
     const checkJobStatus: any = async (jobId: number) => {
         const job = await db.get_job(jobId)
