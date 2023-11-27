@@ -6,6 +6,8 @@ import * as inventory from './inventory'
 import { load_config } from '../types/config'
 const config = load_config()
 
+import { parentPort } from 'worker_threads'
+
 const INVENTORY_SIZE = config.build.depth * config.build.width * 6
 
 export async function take_inventory() {
@@ -57,63 +59,191 @@ export async function take_inventory() {
 
 }
 
-export async function optimize_inventory() {
-    let list = await db.get_inventory_items()
+function inventory_cost(inventory: types.ItemLocation[]): number {
+    /*
+    Calculates the cost of the current inventory state. The higher the cost, the less efficient the inventory state.
+    */
+    
+    // Calculating total cost
+    let occupied_slots = inventory.length;
 
-    let items = inventory.summarize(list)
+    // Remove shulker boxes from occupied slots when shulker box is full
+    let fullShulkers = helper.get_full_shulkers(inventory)
+    occupied_slots -= fullShulkers.length * 27
 
-    let moves: types.MoveItem[] = []
+    return occupied_slots
+}
+
+
+function neighbours(list: types.ItemLocation[]): types.MoveItem[] {
+    const neighbours: types.MoveItem[] = []
+
+    const items = list.filter(item => !item.item.name.endsWith("shulker_box"))
+
     for (const item of items) {
-        let items_list = list.filter( x => x.item.id === item.item.id && x.count != x.item.stack_size)
-        moves.push(...handle_stacking(items_list))  
+        const destinations = list.filter(destination => 
+            destination.item.id === item.item.id && 
+            destination.count < destination.item.stack_size && 
+            item.count != item.item.stack_size)
+
+        // remove itself from destinations
+        const index = destinations.findIndex(x => x.location === item.location)
+        if (index > -1) {
+            destinations.splice(index, 1)
+        }
+
+        // For each destination, create a move
+        for (const destination of destinations) {
+            const count = Math.min(item.count, destination.item.stack_size - destination.count)
+            neighbours.push({
+                item: item.item,
+                from: item.location,
+                to: destination.location,
+                count,
+            })
+        }
+       
+
+        // Find shulkers which can be moved into with same items or empty
+        const not_full_shulkers = helper.get_non_full_shulkers(list, item.item)
+        for(let shulker of not_full_shulkers) {
+            let shulker_contents = helper.find_shulker_contents(list, shulker.location)
+
+            for(let i=0; i<shulker_contents.length; i++) {
+            if (shulker_contents.find(x => x.location.shulker_slot === i) === undefined) {
+                neighbours.push({
+                item: item.item,
+                from: item.location,
+                to: shulker_contents[i].location,
+                count: Math.min(item.item.stack_size - item.count, shulker_contents[i].item.stack_size),
+                })
+                break
+            }
+            }
+
+        }
+
+        // Potentially move item out of shulker
+        if (item.location.shulker_slot !== null) {
+            const max_chest = Math.max(...list.map(x => x.location.chest))
+            const open_slot = inventory.get_open_slots(list, max_chest)[0]
+            if (open_slot) {
+                neighbours.push({
+                    item: item.item,
+                    from: item.location,
+                    to: open_slot,
+                    count: item.count,
+                })
+            }    
+        }
+
+
+    }
+    
+    return neighbours
+
+}
+
+function a_star(inventory: types.ItemLocation[], limit: number): types.MoveItem[] {
+
+    interface Node {
+        inventory: types.ItemLocation[];
+        g: number; // steps cost
+        h: number; // heuristic (cost)
+        f: number; // total cost
+        parent?: Node;
+        move?: types.MoveItem;
     }
 
-    console.log("moves", moves)
+    const startNode: Node = {
+        inventory,
+        g: 0,
+        h: inventory_cost(inventory),
+        f: inventory_cost(inventory),
+    };
+    const openSet: Node[] = [startNode];
+    const closedSet: Node[] = [];
+
+    let moves = 0;
+    while (openSet.length > 0 ) {
+        const currentNode = openSet.reduce((a, b) => (a.f < b.f ? a : b)); // Find the node with the lowest f score
+
+        console.log("moves", moves, "f", currentNode.f, "g", currentNode.g, "h", currentNode.h)
+
+        // If the goal has been reached, return the path
+        if (moves > limit) {
+            const path: types.MoveItem[] = [];
+            let node: Node | undefined = closedSet.reduce((a, b) => (a.f < b.f ? a : b)); // Find the node with the lowest f score;
+            while (node?.parent) {
+                path.unshift(node.move!);
+                node = node.parent;
+            }
+            return path;
+        }
+
+        openSet.splice(openSet.indexOf(currentNode), 1);
+        closedSet.push(currentNode);
+
+        const nextMoves = [];
+        nextMoves.push(...neighbours(currentNode.inventory));
+
+        for (const nextMove of nextMoves) {
+            const nextInventory = helper.apply_moves(types.ChestType.Inventory, currentNode.inventory, [nextMove]);
+            
+            if (closedSet.some((node) => helper.equal_inventories(node.inventory, nextInventory))) {
+                continue;
+            }
+            
+            const cost = inventory_cost(nextInventory)
+
+            const step_cost = 0.5
+
+            const nextNode: Node = {
+                inventory: nextInventory,
+                g: currentNode.g + step_cost,
+                h: cost,
+                f: currentNode.g + step_cost + cost,
+                parent: currentNode,
+                move: nextMove,
+            };
+
+
+            const existingNode = openSet.find((node) => helper.equal_inventories(node.inventory, nextInventory));
+            if (!existingNode) {
+                openSet.push(nextNode);
+            } else if (nextNode.g < existingNode.g) {
+                // If the next node is in the open set and has a lower g score, update it
+                existingNode.g = nextNode.g;
+                existingNode.f = nextNode.f;
+                existingNode.parent = nextNode.parent;
+                existingNode.move = nextNode.move;
+            }
+        }
+
+        moves++;
+    }
+
+    // If the goal cannot be reached, return the original inventory
+    return [];
+  }
+
+
+export async function optimize_inventory() {
+    const inventory = await db.get_inventory_items()
+
+    console.log("starting cost", inventory_cost(inventory))
+
+    const moves = a_star(inventory, 2000)
+
+    console.log("recommended", moves, inventory_cost(helper.apply_moves(types.ChestType.Inventory, inventory, moves)))
 
     await db.add_job(types.JobType.Move, moves)
 
+    parentPort?.postMessage('done');
 }
 
-function handle_stacking(item_locations: types.ItemLocation[]): types.MoveItem[] {
-    if (item_locations.length === 0) {
-        return []
+parentPort?.on('message', (task) => {
+    if (task === 'optimize_inventory') {
+        optimize_inventory();
     }
-    const item = item_locations[0].item
-    const count = item_locations.reduce( (acc, x) => acc + x.count, 0)
-
-    let sorted_locations = item_locations.sort((a, b) => a.count - b.count);
-    let index_moves = optimize_slots(item_locations.map(x => x.count), item.stack_size)
-
-    let moves = index_moves.map( x => ({
-        item,
-        from: sorted_locations[x[0]].location,
-        to: sorted_locations[x[1]].location,
-        count: x[2],
-    }))
-
-    return moves
-}
-
-function optimize_slots(slots: number[], sizeLimit: number): [number, number, number][] {
-    let moves: [number, number, number][] = [];
-
-    for (let i = 0; i < slots.length - 1; i++) {
-        if (slots[i] === 0) {
-            continue; // Skip empty slots
-        }
-
-        for (let j = i + 1; j < slots.length; j++) {
-            let spaceLeftInNextSlot = sizeLimit - slots[j];
-
-            if (spaceLeftInNextSlot >= slots[i]) {
-                // Move entire value from current slot to next if it fits
-                moves.push([i, j, slots[i]]);
-                slots[j] += slots[i];
-                slots[i] = 0;
-                break; // Move to the next slot since this one is now empty
-            }
-        }
-    }
-
-    return moves;
-}
+});

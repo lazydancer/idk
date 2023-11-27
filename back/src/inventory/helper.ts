@@ -23,6 +23,27 @@ export function get_full_shulkers(inventory: types.ItemLocation[]): {item: types
     return fullShulkers;
 }
 
+export function get_non_full_shulkers(inventory: types.ItemLocation[], item: types.Item): {location: types.Location}[] {
+  const nonFullShulkers = [];
+  for (const {item, location, count} of inventory) {
+    if (item.name.endsWith("shulker_box")) {
+
+        const shulker_slots = find_shulker_contents(inventory, location)
+
+        if( shulker_slots.length == 0 ) {
+            nonFullShulkers.push({
+                location: location,
+            })
+        } else if  (shulker_slots.length < 27 && shulker_slots.every(({item}) => item.id === shulker_slots[0].item.id)) {
+            nonFullShulkers.push({
+                location: location,
+            })
+        } 
+    }
+  }
+  return nonFullShulkers;
+}
+
 export function find_shulker_contents(inventory: types.ItemLocation[], shulker_location: types.Location): types.ItemLocation[] {
     return inventory.filter(({location}) => 
         location.chest === shulker_location.chest && 

@@ -201,7 +201,7 @@ function get_space_locations(items_to_move: types.ItemLocation[], inventory: typ
 
 }
 
-function get_open_slots(inventory: types.ItemLocation[], chest_count: number): types.Location[] {
+export function get_open_slots(inventory: types.ItemLocation[], chest_count: number): types.Location[] {
     let result: any = []
 
     for(let chest_index = 0; chest_index < chest_count; chest_index++) {

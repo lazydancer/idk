@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express"
-
+import { Worker } from "worker_threads"
 
 
 import * as inventory from '../inventory/inventory'
@@ -90,7 +90,15 @@ export async function run_server() {
       await db.init_tables()
     }
     if (process.argv[2] == "optimize") {
-      await optimize_inventory()
+      const worker = new Worker('./dist/inventory/optimize.js')
+
+      worker.on('message', (msg) => {
+        console.log(msg)
+      })
+
+      worker.postMessage('optimize_inventory')
+      // await new Promise(r => setTimeout(r, 10000)); // Wait for user to login before optimizing
+      // optimize_inventory()
     }
   } 
 
