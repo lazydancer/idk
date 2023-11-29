@@ -4,7 +4,6 @@ import * as types from '../types/types'
 
 const config = load_config()
 
-
 const pool = new Pool({
     host: config.database.host,
     user: config.database.user,
@@ -14,7 +13,6 @@ const pool = new Pool({
 })
 
 const STATIONS_COUNT = config.build.stations
-
 
 
 export async function init_tables() {
@@ -223,26 +221,41 @@ export async function apply_moves(moves: types.MoveItem[]): Promise<any> {
 }
 
 export async function apply_ownership(user_id: number, moves: types.MoveItem[]): Promise<any> {
+    // Start a transaction
+    const client = await pool.connect();
 
-    for(const move of moves) {
-        const ownership = await pool.query(`SELECT * FROM ownership WHERE user_id = $1 AND item_id = $2 AND status = 'Open'`, [user_id, move.item.id])
+    try {
+        await client.query('BEGIN');
 
-        if (move.to.chest_type === types.ChestType.Inventory) {
-            if (ownership.rowCount > 0) {
-                await pool.query(`UPDATE ownership SET count = count + $1 WHERE user_id = $2 AND item_id = $3 AND status = 'Open'`, [move.count, user_id, move.item.id]);
-            } else {
-                await pool.query(`INSERT INTO ownership (user_id, item_id, count, status) VALUES ($1, $2, $3, 'Open')`, [user_id, move.item.id, move.count]);
-            }
-        } else {
-            if (ownership.rowCount > 0 && ownership.rows[0].count > move.count) {
-                await pool.query(`UPDATE ownership SET count = count - $1 WHERE user_id = $2 AND item_id = $3 AND status = 'Open'`, [move.count, user_id, move.item.id]);
-            } else if ( ownership.rowCount > 0 && ownership.rows[0].count === move.count) {
-                await pool.query(`DELETE FROM ownership WHERE user_id = $1 AND item_id = $2 AND status = 'Open'`, [user_id, move.item.id]);
-            } else {
-                throw new Error('Ownership not found or insufficient count');
-            }
+        for (const move of moves) {
+            await process_move(client, user_id, move);
         }
+        await client.query('COMMIT');
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+}
 
+async function process_move(client: any, user_id: number, move: types.MoveItem) {
+    const ownership = await client.query(`SELECT * FROM ownership WHERE user_id = $1 AND item_id = $2 AND status = 'Open'`, [user_id, move.item.id])
+
+    if (move.to.chest_type === types.ChestType.Inventory) { // Deposit
+        if (ownership.rowCount > 0) {
+            await client.query(`UPDATE ownership SET count = count + $1 WHERE user_id = $2 AND item_id = $3 AND status = 'Open'`, [move.count, user_id, move.item.id]);
+        } else {
+            await client.query(`INSERT INTO ownership (user_id, item_id, count, status) VALUES ($1, $2, $3, 'Open')`, [user_id, move.item.id, move.count]);
+        }
+    } else { // Withdraw
+        if (ownership.rowCount > 0 && ownership.rows[0].count > move.count) {
+            await client.query(`UPDATE ownership SET count = count - $1 WHERE user_id = $2 AND item_id = $3 AND status = 'Open'`, [move.count, user_id, move.item.id]);
+        } else if ( ownership.rowCount > 0 && ownership.rows[0].count === move.count) {
+            await client.query(`DELETE FROM ownership WHERE user_id = $1 AND item_id = $2 AND status = 'Open'`, [user_id, move.item.id]);
+        } else {
+            throw new Error('Ownership not found or insufficient count');
+        }
     }
 
 }
