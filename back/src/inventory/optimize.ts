@@ -67,6 +67,9 @@ function inventory_cost(inventory: types.ItemLocation[]): number {
     // Calculating total cost
     let occupied_slots = inventory.length;
 
+    // To help entice the algorithm to move items into shulkers, we reduce the cost of items in shulker boxes
+    inventory.filter(x => x.location.shulker_slot !== null).forEach(x => occupied_slots -= 0.5)
+
     // Remove shulker boxes from occupied slots when shulker box is full
     let fullShulkers = helper.get_full_shulkers(inventory)
     occupied_slots -= fullShulkers.length * 27
@@ -109,16 +112,27 @@ function neighbours(list: types.ItemLocation[]): types.MoveItem[] {
         for(let shulker of not_full_shulkers) {
             let shulker_contents = helper.find_shulker_contents(list, shulker.location)
 
-            for(let i=0; i<shulker_contents.length; i++) {
-            if (shulker_contents.find(x => x.location.shulker_slot === i) === undefined) {
+            if (shulker_contents.length === 0) {
                 neighbours.push({
-                item: item.item,
-                from: item.location,
-                to: shulker_contents[i].location,
-                count: Math.min(item.item.stack_size - item.count, shulker_contents[i].item.stack_size),
+                    item: item.item,
+                    from: item.location,
+                    to: {...shulker.location, shulker_slot: 0},
+                    count: item.count,
                 })
-                break
+                continue
             }
+
+            for(let i = 0; i < 27; i++) {
+                let shulker_slot = shulker_contents.find(x => x.location.shulker_slot === i)
+                if (shulker_slot === undefined) {
+                    neighbours.push({
+                        item: item.item,
+                        from: item.location,
+                        to: {...shulker_contents[0].location, shulker_slot: i},
+                        count: item.count,
+                    })
+                    break
+                }
             }
 
         }
@@ -233,7 +247,7 @@ export async function optimize_inventory() {
 
     console.log("starting cost", inventory_cost(inventory))
 
-    const moves = a_star(inventory, 2000)
+    const moves = a_star(inventory, 100)
 
     console.log("recommended", moves, inventory_cost(helper.apply_moves(types.ChestType.Inventory, inventory, moves)))
 
