@@ -61,14 +61,16 @@ Since this is a personal project, sorry I haven't spend much time to help with i
 - Minecraft server running 1.20.1 (lower versions might work)
 - The storage layout setup on the server:
 
-■■ ■■■■ ■■■■ ■■■■ ■■
-■■ ■■■■ ■■■■ ■■■■ ■■
-■■ ■■■■ ■■■■ ■■■■ ■■
-■■ ■■■■ ■■■■ ■■■■ ■■
-■■ ■■■■ ■■■■ ■■■■ ■■
-                    
-  ■
-  ▣ <-- build.location (build anchor / chest)
+```
+ ■■ ■■■■ ■■■■ ■■■■ ■■
+ ■■ ■■■■ ■■■■ ■■■■ ■■
+ ■■ ■■■■ ■■■■ ■■■■ ■■
+ ■■ ■■■■ ■■■■ ■■■■ ■■
+ ■■ ■■■■ ■■■■ ■■■■ ■■
+                     
+   ■
+   ▣ <-- build.location (build anchor / chest)
+```
 
 ^ build.direction - ('east'|'north'|'south'|'west')
 
@@ -81,6 +83,7 @@ build.depth is number of blocks deep the storage is. In this there is 5
 
 Configurate in back/config.json
 
+```
 {
     "database": {
         "host": "localhost",
@@ -103,6 +106,7 @@ Configurate in back/config.json
         "stations": 1
     }
 }
+```
 
 A user will need to be added, with the username matching the minecraft name and a token
 
