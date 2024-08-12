@@ -15,6 +15,7 @@ interface Config {
     };
     build: {
         location: number[],
+        direction: 'north'|'east'|'south'|'west',
         width: number,
         depth: number,
         stations: number,

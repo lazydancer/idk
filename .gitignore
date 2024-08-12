@@ -9,3 +9,4 @@ dist/
 front/public/static
 back/online_config.json
 back/offline_config.json
+*.zip

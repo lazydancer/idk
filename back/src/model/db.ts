@@ -70,7 +70,7 @@ export async function get_inventory_items(): Promise<types.ItemLocation[]> {
 
 export async function get_user_items(user_id: number): Promise<types.ItemCount[]> {
     try {
-        const request = await pool.query(`SELECT * FROM ownership JOIN items ON ownership.item_id = items.id WHERE ownership.user_id = $1 AND ownership.status = 'Open'`, [user_id])
+        const request = await pool.query(`SELECT * FROM ownership JOIN items ON ownership.item_id = items.id WHERE ownership.user_id = $1 AND ownership.state = 'Open'`, [user_id])
 
         return request["rows"].map( x => (
             {
@@ -193,7 +193,7 @@ export async function apply_moves(moves: types.MoveItem[]): Promise<any> {
 
             }
             
-            if (exists.rowCount > 0) {
+            if ((exists.rowCount ?? 0) > 0) {
                 if (move.to.shulker_slot == null) {
                     await pool.query("UPDATE locations SET count = count + $1 WHERE slot=$2 and chest=$3 and shulker_slot is null", [move.count, move.to.slot, move.to.chest])        
                 } else {
@@ -240,19 +240,19 @@ export async function apply_ownership(user_id: number, moves: types.MoveItem[]):
 }
 
 async function process_move(client: any, user_id: number, move: types.MoveItem) {
-    const ownership = await client.query(`SELECT * FROM ownership WHERE user_id = $1 AND item_id = $2 AND status = 'Open'`, [user_id, move.item.id])
+    const ownership = await client.query(`SELECT * FROM ownership WHERE user_id = $1 AND item_id = $2 AND state = 'Open'`, [user_id, move.item.id])
 
     if (move.to.chest_type === types.ChestType.Inventory) { // Deposit
         if (ownership.rowCount > 0) {
-            await client.query(`UPDATE ownership SET count = count + $1 WHERE user_id = $2 AND item_id = $3 AND status = 'Open'`, [move.count, user_id, move.item.id]);
+            await client.query(`UPDATE ownership SET count = count + $1 WHERE user_id = $2 AND item_id = $3 AND state = 'Open'`, [move.count, user_id, move.item.id]);
         } else {
-            await client.query(`INSERT INTO ownership (user_id, item_id, count, status) VALUES ($1, $2, $3, 'Open')`, [user_id, move.item.id, move.count]);
+            await client.query(`INSERT INTO ownership (user_id, item_id, count, state) VALUES ($1, $2, $3, 'Open')`, [user_id, move.item.id, move.count]);
         }
     } else { // Withdraw
         if (ownership.rowCount > 0 && ownership.rows[0].count > move.count) {
-            await client.query(`UPDATE ownership SET count = count - $1 WHERE user_id = $2 AND item_id = $3 AND status = 'Open'`, [move.count, user_id, move.item.id]);
+            await client.query(`UPDATE ownership SET count = count - $1 WHERE user_id = $2 AND item_id = $3 AND state = 'Open'`, [move.count, user_id, move.item.id]);
         } else if ( ownership.rowCount > 0 && ownership.rows[0].count === move.count) {
-            await client.query(`DELETE FROM ownership WHERE user_id = $1 AND item_id = $2 AND status = 'Open'`, [user_id, move.item.id]);
+            await client.query(`DELETE FROM ownership WHERE user_id = $1 AND item_id = $2 AND state = 'Open'`, [user_id, move.item.id]);
         } else {
             throw new Error('Ownership not found or insufficient count');
         }

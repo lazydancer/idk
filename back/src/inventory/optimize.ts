@@ -8,7 +8,7 @@ const config = load_config()
 
 import { parentPort } from 'worker_threads'
 
-const INVENTORY_SIZE = config.build.depth * config.build.width * 6
+const INVENTORY_SIZE = config.build.depth * 2*config.build.width * 6
 
 export async function take_inventory() {
     const inventory = await db.get_inventory_items()

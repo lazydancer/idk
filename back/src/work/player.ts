@@ -5,6 +5,8 @@ import * as types from '../types/types'
 import { load_config } from '../types/config'
 import { get_item_ids } from '../model/db'
 
+import * as chests from './chests'
+
 const config = load_config()
 
 export class Player {
@@ -24,7 +26,7 @@ export class Player {
 			})
 		this.open_container = null
 		this.shulker_location = null
-		this.map = this.build_map()
+		this.map = chests.build_map()
 		this.inventory = []
 	}
 
@@ -33,11 +35,11 @@ export class Player {
 			await this.bot.closeWindow(this.open_container)
 		}
 
-		await this.move(this.standing_location(chest_type, chest))
+		const location = chests.chest_to_location(chest_type, chest)
 
-		const location = this.chest_to_location(chest_type, chest)
+		await this.move(location["stand"])
 
-		this.open_container = await this.bot.openContainer(this.bot.blockAt(location))
+		this.open_container = await this.bot.openContainer(this.bot.blockAt(location["chest"]))
 
 		let items = this.open_container.containerItems().map((o: any) => ({
 			item: { 
@@ -200,7 +202,7 @@ export class Player {
 
 	private async move(loc: any) {
 		let x = loc[0]
-		let z = loc[1]
+		let z = loc[2]
 
 
 		function pathfind(start: any, dest: any, map: any) {
@@ -285,6 +287,7 @@ export class Player {
 		}
 
 		if (!includesArray(this.map, [x,z])) {
+			console.log(this.map, [x, z])
 			throw Error("destination not on map")
 		}
 
@@ -326,58 +329,6 @@ export class Player {
 		if (player_item.count === 0) {
 			this.inventory.splice(this.inventory.indexOf(player_item), 1);
 		}
-	}
-
-
-	private chest_to_location(chest_type: types.ChestType, chest_number: number): any {
-
-		if(chest_type == types.ChestType.Inventory) {
-
-			const offset = [config.build.location[0] + 2, config.build.location[1], config.build.location[2] - 3]
-
-			const x = Math.floor(chest_number / (6*config.build.depth)) * 3
-			const y = chest_number % 6
-			const z = -1*(Math.floor(chest_number / 6 ) % config.build.depth)
-
-			return vec3(x + offset[0], y + offset[1], z + offset[2])
-
-		}
-
-		if (chest_type == types.ChestType.Station) {
-			return vec3(config.build.location[0] + 1 + chest_number, config.build.location[1], config.build.location[2] - 1)
-		}
-
-	}
-
-	private standing_location(chest_type: types.ChestType, chest_number: number): any {
-
-		if(chest_type == types.ChestType.Inventory) {
-			const offset = [config.build.location[0] + 2, config.build.location[1], config.build.location[2] - 3]
-
-			const x = Math.floor(chest_number / (6*config.build.depth)) * 3
-			const z = -1*(Math.floor(chest_number / 6 ) % config.build.depth)
-
-			return [x + offset[0] + 1, z + offset[2]]
-		}
-
-		if (chest_type == types.ChestType.Station) {
-			return [config.build.location[0] + 1 + chest_number, config.build.location[2] - 2]
-		}
-	}
-
-	private build_map(): any {
-		const walkway = [...Array(3*config.build.width+2).keys()].map(x => 
-		[config.build.location[0] + 1 +x, 
-			config.build.location[2] - 2]
-		)
-		const rows = [...Array(config.build.width).keys()].map(w => 
-			[...Array(config.build.depth).keys()].map(d => 
-			[config.build.location[0] + (3+3*w), 
-				config.build.location[2] - (d+3)]
-		)
-		).flat()
-
-		return walkway.concat(rows).sort()
 	}
 
 }
