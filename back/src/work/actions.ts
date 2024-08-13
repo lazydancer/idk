@@ -9,8 +9,6 @@ const shulker_inventory_size = 27
 const double_chest_size = 54
 
 export async function move(player: any, requests: types.MoveItem[]) {
-
-    console.log('move', requests)
     requests = structuredClone(requests) // requests is used again outside of this function
 
     // remove any requests that are in a shulker to be moved within the shulker
@@ -38,13 +36,13 @@ export async function move(player: any, requests: types.MoveItem[]) {
         await stash(player, chunk)
     }
 
+    await player.close()
+
 }
     
 async function collect(player: any, requests: types.MoveItem[]) {
     const from_shulker = requests.filter( (r: any) => (r.from.shulker_slot != null))  
     await move_items_out_of_shulkers(player, from_shulker)
-
-    console.log("request collect", requests.filter( (r: any) => r.from.shulker_slot == null))
 
     let open_chest = null
     let inventory = null
@@ -292,6 +290,7 @@ export async function survey(player: any, chest_type: types.ChestType, chest: nu
         Survey a chest returning contents
     */
     let items = await player.open(chest_type, chest)
+    await player.close()
     
     let shulkers = []
     for (const box of items.filter( (x:any) => x.item.name.endsWith("shulker_box"))) {

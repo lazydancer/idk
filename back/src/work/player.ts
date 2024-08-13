@@ -1,5 +1,5 @@
-const mineflayer = require('mineflayer')
-const vec3 = require('vec3')
+import mineflayer from 'mineflayer';
+import { Vec3 } from 'vec3';
 
 import * as types from '../types/types'
 import { load_config } from '../types/config'
@@ -10,11 +10,11 @@ import * as chests from './chests'
 const config = load_config()
 
 export class Player {
-    bot: any
-    open_container: any
-	shulker_location: any // When opening a shulker need to store location of where to place it back when closing it
-	map: any // map of all valid locations to move to
-	inventory: types.ItemLocation[] // the bot's inventory
+    bot: any;
+    open_container: any = null;
+	shulker_location: any = null;
+	map: Vec3[] = chests.build_map();
+	inventory: types.ItemLocation[] = []// the bot's inventory
 
 	constructor() {
 		this.bot = mineflayer.createBot({
@@ -24,22 +24,17 @@ export class Player {
 				password: config.minecraft.password,
 				auth: 'microsoft' 
 			})
-		this.open_container = null
-		this.shulker_location = null
-		this.map = chests.build_map()
-		this.inventory = []
 	}
 
 	async open(chest_type: types.ChestType, chest: number): Promise<types.ItemLocation[]>  {
-		if ( this.open_container != null ) {
+		if (this.open_container) {
 			await this.bot.closeWindow(this.open_container)
 		}
 
 		const location = chests.chest_to_location(chest_type, chest)
+		await this.move(location.stand)
 
-		await this.move(location["stand"])
-
-		this.open_container = await this.bot.openContainer(this.bot.blockAt(location["chest"]))
+		this.open_container = await this.bot.openContainer(this.bot.blockAt(location.chest))
 
 		let items = this.open_container.containerItems().map((o: any) => ({
 			item: { 
@@ -65,62 +60,37 @@ export class Player {
 
 	}
 
-	async lclick(slot: any) {
+	async lclick(slot: number): Promise<void> {
 		await this.bot.simpleClick.leftMouse(slot)
-
-		// There is no confirmation of click, so wait a bit
 		await new Promise(r => setTimeout(r, 50));
-
-		return "done";
 	}
 
-	async rclick(slot: any) {
+	async rclick(slot: number): Promise<void> {
 		await this.bot.simpleClick.rightMouse(slot)
-
-		// There is no confirmation of click, so wait a bit
 		await new Promise(r => setTimeout(r, 50));
-
-		return "done";
 	}
 
-	async close()  {
+	async close(): Promise<void>  {
 		await this.bot.closeWindow(this.open_container)
 		this.open_container = null
-		return "done";
 	}
 
 
-	async open_shulker(chest_type: any, chest: any, slot: any): Promise<any> {
-		if ( this.open_container != null ) {
+	async open_shulker(chest_type: types.ChestType, chest: number, slot: number): Promise<types.ItemLocation[]> {
+		if (this.open_container) {
 			await this.bot.closeWindow(this.open_container)
 		}
 
 		const hand_slot = 81
 
 		await this.open(chest_type, chest)
-
 		await this.lclick(slot)
 		await this.lclick(hand_slot)
-
 		await this.close()
 
-		// get neighbouring space to place shulker
-		let player_position = [Math.floor(this.bot.entity.position.x), Math.floor(this.bot.entity.position.z)]
+		const player_position = this.bot.entity.position.floored(); 
 
-		let open_place: any[] = [];
-		for(const loc of [[1,0], [-1,0], [0,1], [0,-1]]) {
-			let place = [player_position[0] + loc[0], player_position[1] + loc[1]]
-			for (const m of this.map) {
-				if(m[0] == place[0] && m[1] == place[1]) {
-					open_place = place 
-					break;
-				}
-			}
-			}
-
-		if(open_place.length == 0) {
-			throw console.error("couldn't find a place");
-		}
+		let open_place: Vec3 = this.find_open_place(player_position);	
 
 		await new Promise(r => setTimeout(r, 1000));
 		
@@ -128,14 +98,11 @@ export class Player {
 		await this.bot.setQuickBarSlot(1)
 		await this.bot.setQuickBarSlot(0)
 
-		// place shulker
-		await this.bot.placeBlock(this.bot.blockAt(vec3(open_place[0], config.build.location[1]-1, open_place[1])), vec3(0,1,0))
-
+		const blockBelow = this.bot.blockAt(open_place.offset(0, -1, 0));
+        await this.bot.placeBlock(blockBelow, new Vec3(0, 1, 0));
 		await new Promise(r => setTimeout(r, 100));
 
-
-		// open
-		let block = await this.bot.blockAt(vec3(open_place[0], config.build.location[1], open_place[1]))
+		let block = await this.bot.blockAt(open_place)
 		let window = await this.bot.openContainer(block)
 
 		this.shulker_location = [chest, chest_type, slot, window, block]		
@@ -163,8 +130,18 @@ export class Player {
 		return items
 		
 	}
+	private find_open_place(player_position: Vec3): Vec3 {
+		for (const loc of [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)]) {
+			const place = player_position.add(loc);
+			if (this.map.some((m: Vec3) => m.x === place.x && m.z === place.z)) {
+				return place;
+			}
+		}
 
-	async close_shulker() {
+        throw new Error("Couldn't find a place to open the shulker.");
+	}
+
+	async close_shulker(): Promise<void> {
 		const hand_slot = 81
 
 		let [chest, chest_type, slot, window, block] = this.shulker_location 
@@ -173,7 +150,7 @@ export class Player {
 		await this.bot.closeWindow(window)
 		await this.bot.dig(block)
 
-		await this.move([block.position["x"], block.position["z"]])
+		await this.move(block.position)
 
 		await new Promise(r => setTimeout(r, 1000));
 
@@ -193,125 +170,104 @@ export class Player {
 
 	}
 
-	async move_to_ready() {
-		const x = config.build.location[0] + 5
-		const z = config.build.location[2] - 2
-		await this.move([x, z])
+	private async move(loc: Vec3): Promise<void> {
+		const player_position = this.bot.entity.position.floored();
+    	const destination = loc.floored();
+		
+		if (player_position.equals(destination)) return;
+		if (!this.is_position_on_map(player_position)) throw new Error("Player not on map");
+		if (!this.is_position_on_map(destination)) throw new Error("Destination not on map");
+
+		const path = this.find_path(player_position, destination, this.map);
+
+		if (!path) throw new Error("Pathfinding failed");
+
+		const straight_path = this.straighten_path(path);
+
+		straight_path.shift(); // Remove the starting position from the path
+
+		for (const step of straight_path) {
+			await this.move_along_line(step);
+		}
+		
 	}
 
+	private is_position_on_map(position: Vec3): boolean {
+		return this.map.some((e: { equals: (arg0: Vec3) => any; }) => e.equals(position));
+	}
 
-	private async move(loc: any) {
-		let x = loc[0]
-		let z = loc[2]
-
-
-		function pathfind(start: any, dest: any, map: any) {
-			let queue = [[start, []]];
-
-			while (queue.length) 	{
-				let elem: any = queue.shift();
-				let n = elem[0]
-				let path = elem[1]
-
-				if ((n[0] == dest[0]) && (n[1] == dest[1])) return [...path, n];
-				
-				let [x,y] = n;
-				for (const a of [[x+1, y], [x-1, y], [x, y+1], [x, y-1]]) {
-
-					if ( includesArray(map, a) && !includesArray(path, a) ) queue.push([a, [...path, n]])
-				
+	private find_path(start: Vec3, destination: Vec3, map: Vec3[]): Vec3[] | undefined {
+		const queue: [Vec3, Vec3[]][] = [[start, []]];
+	
+		while (queue.length) {
+			const [current, path] = queue.shift()!;
+	
+			if (current.equals(destination)) return [...path, current];
+	
+			for (const neighbour of this.get_neighbours(current)) {
+				if (this.is_position_on_map(neighbour)) {
+					queue.push([neighbour, [...path, current]]);
 				}
-
 			}
 		}
+	
+		return undefined;
+	}
+	
+	private get_neighbours(position: Vec3): Vec3[] {
+		return [
+			position.offset(1, 0, 0),
+			position.offset(-1, 0, 0),
+			position.offset(0, 0, 1),
+			position.offset(0, 0, -1)
+		];
+	}
 
-		const includesArray = (data: any, arr :any) => {
-			return data.some((e: any) => Array.isArray(e) && e.every((o, i) => Object.is(arr[i], o)));
-		}
-
-		function straighten_path(path :any) {
-			if (path.length < 2) return path
-
-
-			let new_path = []
-			let prev_dir = [-5,-5] // not possible, ensure not a match
-			let cur_dir = []
-
-			for (let i = 1; i < path.length; i++) {
-				let cur_dir = [path[i][0] - path[i-1][0], path[i][1] - path[i-1][1]]
-
-				if ((cur_dir[0] != prev_dir[0]) && (cur_dir[1] != prev_dir[1])) {
-					new_path.push(path[i-1])
-				}
-
-				prev_dir = cur_dir
+	private straighten_path(path: Vec3[]): Vec3[] {
+		if (path.length < 2) return path;
+	
+		const newPath: Vec3[] = [];
+		let prevDir = new Vec3(-5, 0, -5); // Impossible direction to ensure no match
+	
+		for (let i = 1; i < path.length; i++) {
+			const curDir = path[i].minus(path[i - 1]);
+	
+			if (!curDir.equals(prevDir)) {
+				newPath.push(path[i - 1]);
 			}
-
-			return [...new_path, path[ path.length-1 ]]
+	
+			prevDir = curDir;
 		}
+	
+		return [...newPath, path[path.length - 1]];
+	}
+	
+	private async move_along_line(target: Vec3): Promise<void> {
+		const position = target.offset(0.5, 0, 0.5);
 
-		const move_line = async (x :any, z :any) =>  {
-			let position = vec3(x + 0.5, config.build.location[1], z + 0.5)
-
-			await this.bot.lookAt(position, true);
-			this.bot.setControlState('forward', true);
-
-			return new Promise<void>(resolve => {
-			
-				let loop = () => {
-
-					if (this.bot.entity.position.distanceTo(position) < 0.4) {
-						this.bot.setControlState('forward', false);
-						resolve();
-					}	else {
-						setTimeout(loop, 50);
-					}
-
+		await this.bot.lookAt(position, true);
+		this.bot.setControlState('forward', true);
+	
+		return new Promise<void>(resolve => {
+			const loop = () => {
+				if (this.bot.entity.position.distanceTo(position) < 0.4) {
+					this.bot.setControlState('forward', false);
+					resolve();
+				} else {
+					setTimeout(loop, 50);
 				}
-
-				loop()
-			})		
-
-		}
-		let player_position = [Math.floor(this.bot.entity.position.x), Math.floor(this.bot.entity.position.z)]
-
-		x = parseInt(x)
-		z = parseInt(z)
-
-		if ((player_position[0] == x) && (player_position[1] == z)) {
-			return "done"
-		}
-
-		if (!includesArray(this.map, player_position)) {
-			throw Error("player not on map")
-		}
-
-		if (!includesArray(this.map, [x,z])) {
-			console.log(this.map, [x, z])
-			throw Error("destination not on map")
-		}
-
-		let path = pathfind(player_position, [x, z], this.map)
-		let s_path = straighten_path(path)
-		s_path.shift() // remove first
-
-		for (const p of s_path) {
-			await move_line.apply(null, p)
-		}
-
-
-		return "done";
+			};
+			loop();
+		});
 	}
 
 	async inventory_add(item: types.ItemLocation) {
-		// if location already contains item, add to count
 		let player_item = this.inventory.find((i: types.ItemLocation) => i.location.slot === item.location.slot)
 		if (player_item) {
 			player_item.count += item.count
 			return
 		}
 
-		// otherwise add to inventory
 		this.inventory.push(item)
 	}
 

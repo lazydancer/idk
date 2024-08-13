@@ -14,7 +14,7 @@ interface Config {
         auth: string;
     };
     build: {
-        location: number[],
+        location: Vec3, // converted from number[] in config
         direction: 'north'|'east'|'south'|'west',
         width: number,
         depth: number,
@@ -23,7 +23,12 @@ interface Config {
 }
 
 import fs from 'fs'
+import { Vec3 } from 'vec3'
 
 export function load_config(): Config {
-    return JSON.parse(fs.readFileSync('offline_config.json', 'utf8'))
+    let parsed = JSON.parse(fs.readFileSync('offline_config.json', 'utf8'))
+    const [x, y, z] = parsed.build.location;
+    parsed.build.location = new Vec3(x, y, z);
+
+    return parsed;
 }

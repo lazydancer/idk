@@ -167,7 +167,7 @@ export async function get_item_history(item_id: number): Promise<{volume: number
 
 }
 
-export async function apply_moves(moves: types.MoveItem[]): Promise<any> {
+export async function apply_moves(moves: types.MoveItem[]): Promise<void> {
 
     for (const move of moves) {
 
@@ -220,7 +220,7 @@ export async function apply_moves(moves: types.MoveItem[]): Promise<any> {
 
 }
 
-export async function apply_ownership(user_id: number, moves: types.MoveItem[]): Promise<any> {
+export async function apply_ownership(user_id: number, moves: types.MoveItem[]): Promise<void> {
     // Start a transaction
     const client = await pool.connect();
 
