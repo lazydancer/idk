@@ -11,25 +11,17 @@ const double_chest_size = 54
 export async function move(player: any, requests: types.MoveItem[]) {
     requests = structuredClone(requests) // requests is used again outside of this function
 
-    // remove any requests that are in a shulker to be moved within the shulker
-    requests = remove_moves_with_shulker(requests)
+    // remove requests that are implied in a shulker move
+    requests = filter_internal_shulker_moves(requests)
 
-    // If internal dependency in request perform request in order
-    if (check_for_dependencies(requests)) {
-        console.log("dependencies found")
-        for (let request of requests) {
-            await collect(player, [request])
-            await stash(player, [request])
-        }
-        return
-    }
+    // to have a better chance of grouping similar chests
+    // requests.sort((a, b) =>  
+    //     (a.from.chest_type - b.from.chest_type) || 
+    //     (a.from.chest - b.from.chest) || 
+    //     (a.from.slot - b.from.slot) 
+    // );
 
-    // sort by chest and slot
-    requests.sort((a, b) =>  (a.from.chest_type - b.from.chest_type) || (a.from.chest - b.from.chest) || (a.from.slot - b.from.slot) )
-
-    // group into max size of 27    
-    const chunk = (arr: any[], size: number) => arr.reduce((acc, _, i) => (i % size) ? acc : [...acc, arr.slice(i, i + size)], []);
-    let chunks = chunk(requests, 27)
+    let chunks = chunk_requests(requests, 27)
 
     for (let chunk of chunks) {
         await collect(player, chunk)
@@ -39,61 +31,115 @@ export async function move(player: any, requests: types.MoveItem[]) {
     await player.close()
 
 }
-    
+
 async function collect(player: any, requests: types.MoveItem[]) {
-    const from_shulker = requests.filter( (r: any) => (r.from.shulker_slot != null))  
-    await move_items_out_of_shulkers(player, from_shulker)
+    const from_shulker_requests = requests.filter( (r: any) => r.from.shulker_slot != null);
+    const from_chest_requests = requests.filter( (r: any) => r.from.shulker_slot == null);
 
-    let open_chest = null
-    let inventory = null
-    for (let req of requests.filter( (r: any) => r.from.shulker_slot == null)) {
+    await move_items_out_of_shulkers(player, from_shulker_requests)
 
-        if (open_chest == null || open_chest.chest != req.from.chest || open_chest.chest_type != req.from.chest_type) {
-            inventory = await player.open(req.from.chest_type, req.from.chest)
-            open_chest = {chest_type: req.from.chest_type, chest: req.from.chest}
+    let open_chest = null;
+
+    for (const req of from_chest_requests) {
+        const {chest_type, chest, slot} = req.from;
+
+        if (!open_chest || open_chest.chest !== chest || open_chest.chest_type !== chest_type) {
+            open_chest = { 
+                chest_type, 
+                chest,
+                inventory: await player.open(chest_type, chest)
+            };
         }
         
-        const to_slot = await open_slot(player.inventory, req, player_inventory_size)
+        const to_slot = await open_slot(player.inventory, req, player_inventory_size);
+        const item: any = open_chest.inventory.find((i: types.ItemLocation) => i.location.slot === slot);
 
-        const item: any = inventory.find((i: types.ItemLocation) => i.location.slot === req.from.slot)
-        await clicks_move_item(player, req.from.slot, double_chest_inventory_start + to_slot, req.count, item.count)
+        await clicks_move_item(player, slot, double_chest_inventory_start + to_slot, req.count, item.count);
         
-        player.inventory_add({item: req.item, location: {chest_type: types.ChestType.Player, chest: 0, slot: to_slot, shulker_slot: req.to.shulker_slot}, count: req.count})
+        player.inventory_add({
+            item: req.item, 
+            location: {chest_type: types.ChestType.Player, chest: 0, slot: to_slot, shulker_slot: req.to.shulker_slot}, 
+            count: req.count
+        });
     }
 }
 
-async function stash(player: any, requests: types.MoveItem[]) {
-    const to_shulker = requests.filter( (r: any) => (r.to.shulker_slot != null))  
-    await move_items_into_shulkers(player, to_shulker)
+async function move_items_out_of_shulkers(player: any, requests: types.MoveItem[]) {
+    if (!requests.length) return
 
-    let open_chest = {chest_type: types.ChestType.Player, chest: 0}
-    let inventory: types.ItemLocation[] = []
+    // group by shulker
+    const grouped_requests = requests.reduce((groups: any, request: any) => {
+        const key = `chesttype${request.from.chest_type}_chest${request.from.chest}_slot${request.from.slot}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(request);
+        return groups;
+    }, {});
 
-    for (let req of requests.filter( (r: any) => (r.to.shulker_slot == null))) {
-        if (open_chest == null || open_chest.chest != req.to.chest || open_chest.chest_type != req.to.chest_type) {
-            inventory = await player.open(req.to.chest_type, req.to.chest)
-            open_chest = {chest_type: req.to.chest_type, chest: req.to.chest}
+    // for each shulker move items
+    for (const key in grouped_requests) {
+        const shulker_requests = grouped_requests[key];
+
+        const first_move = shulker_requests[0]
+        const shulker_inventory = await player.open_shulker(first_move.from.chest_type, first_move.from.chest, first_move.from.slot)
+        
+        for( const move of shulker_requests ) {
+            let to_slot = open_slot(player.inventory, move.item, player_inventory_size)
+            const item = shulker_inventory.find((i: types.ItemLocation) => i.location.shulker_slot === move.from.shulker_slot)
+            await clicks_move_item(player, move.from.shulker_slot!, shulker_inventory_start + to_slot, move.count, item.count)
+            
+            player.inventory_add({
+                item: move.item, 
+                location: {chest_type: types.ChestType.Player, chest: 0, slot: to_slot, shulker_slot: null}, 
+                count: move.count
+            })
         }
 
-        const player_item = player.inventory.find( (x: any) => x.item.id == req.item.id && x.count >= req.count)
+        await player.close_shulker()
+    }
 
+}
+
+async function stash(player: any, requests: types.MoveItem[]) {
+    const to_shulker_requests = requests.filter( (r: any) => r.to.shulker_slot != null);
+    const to_chest_requests = requests.filter( (r: any) => r.to.shulker_slot == null);
+
+    await move_items_into_shulkers(player, to_shulker_requests)
+
+    let open_chest = null;
+
+    for (const req of to_chest_requests) {
+        const {chest_type, chest, slot} = req.to;
+
+        if (!open_chest || open_chest.chest !== chest || open_chest.chest_type !== chest_type) {
+            open_chest = { 
+                chest_type, 
+                chest,
+                inventory: await player.open(chest_type, chest)
+            };
+        }
+
+        const player_item = player.inventory.find( (x: any) => x.item.id === req.item.id && x.count === req.count)
         if(!player_item) {
             throw new Error(`Player does not have ${req.count} ${req.item.name}`)
         }
 
         const from_slot = double_chest_inventory_start + player_item.location.slot;
-        const to_slot = req.to.chest_type === types.ChestType.Station ? open_slot(inventory, req, double_chest_size) : req.to.slot;
+        const to_slot = chest_type === types.ChestType.Station 
+            ? open_slot(open_chest.inventory, req, double_chest_size) 
+            : slot;
 
         await clicks_move_item(player, from_slot, to_slot, req.count, player_item.count)
 
 		// update inventory
-		const item: any = inventory.find((i: types.ItemLocation) => i.location.slot === to_slot)
-		if (item) {
-			item.count += req.count
+		const target_item: any = open_chest.inventory.find((i: types.ItemLocation) => i.location.slot === to_slot)
+		if (target_item) {
+			target_item.count += req.count;
 		} else {
-            if (req) {
-                inventory.push({item: req.item, location: {chest_type: req.to.chest_type, chest: req.to.chest, slot: to_slot, shulker_slot: req.to.shulker_slot}, count: req.count})
-            }
+            open_chest.inventory.push({
+                item: req.item, 
+                location: {chest_type: chest_type, chest: chest, slot: to_slot, shulker_slot: null}, 
+                count: req.count
+            });
         }
 
         player.inventory_remove(player_item, req.count)
@@ -101,26 +147,35 @@ async function stash(player: any, requests: types.MoveItem[]) {
 
 }
 
-function check_for_dependencies(requests: types.MoveItem[]): boolean {
-    for(let i = 0; i < requests.length; i++) {
-        for(let j = i+1; j < requests.length; j++) {
-            if (requests[i].to.chest_type == requests[j].from.chest_type
-                && requests[i].to.chest == requests[j].from.chest
-                && requests[i].to.slot == requests[j].from.slot) {
-                return true
-            }
-            if(requests[i].from.chest_type == requests[j].to.chest_type
-                && requests[i].from.chest == requests[j].to.chest
-                && requests[i].from.slot == requests[j].to.slot) {
-                return true
-            }
-        }
+
+async function move_items_into_shulkers(player: any, requests: types.MoveItem[]) {
+    if (!requests.length) return
+
+    const shulker_inventory_start = 27
+    const double_chest_inventory_start = 54
+
+    console.log("move items into shulker", requests)
+
+
+    for( let move of requests ) {
+        // let chest_inventory = await player.open(move.from.chest_type, move.from.chest)
+        const player_item = player.inventory.find( (x: any) => x.item.id === move.item.id && x.count === move.count)
+
+        console.log("player_item", player_item)
+
+        console.log("move", move)
+
+        await player.open_shulker(move.to.chest_type, move.to.chest, move.to.slot)
+
+        await clicks_move_item(player, shulker_inventory_start + player_item.location.slot, move.to.shulker_slot!, move.count, move.count)
+
+        await player.close_shulker()
+        
     }
 
-    return false
 }
 
-function remove_moves_with_shulker(requests: types.MoveItem[]) {
+function filter_internal_shulker_moves(requests: types.MoveItem[]) {
     const shulkers = requests.filter( (r: any) => r.item.name.endsWith("shulker_box"));
 
     let indexes_to_remove: any[] = []
@@ -146,95 +201,8 @@ function remove_moves_with_shulker(requests: types.MoveItem[]) {
     return requests.filter((_, i) => !indexes_to_remove.includes(i))
 }
 
-async function move_items_out_of_shulkers(player: any, requests: types.MoveItem[]) {
-
-    // group by shulker
-    const grouped = requests.reduce((r: any, a: any) => {
-        r['chesttype' + a.from.chest_type + 'chest' + a.from.chest + 'slot' + a.from.slot] = [...r['chesttype' + a.from.chest_type + 'chest' + a.from.chest + 'slot' + a.from.slot] || [], a];
-        return r;
-    }, {});
-
-    // for each shulker move items
-    for (const key in grouped) {
-        const first_move = grouped[key][0]
-
-        const shulker_inventory = await player.open_shulker(first_move.from.chest_type, first_move.from.chest, first_move.from.slot)
-        for( let [i, move] of grouped[key].entries() ) {
-            let to_slot = open_slot(player.inventory, move.item, player_inventory_size)
-
-            const item: any = shulker_inventory.find((i: types.ItemLocation) => i.location.shulker_slot === move.from.shulker_slot)
-            await clicks_move_item(player, move.from.shulker_slot!, shulker_inventory_start + to_slot, move.count, item.count)
-            
-            player.inventory_add({item: move.item, location: {chest_type: types.ChestType.Player, chest: 0, slot: to_slot, shulker_slot: null}, count: move.count})
-        }
-        await player.close_shulker()
-    }
-
-}
-
-async function move_items_into_shulkers(player: any, requests: types.MoveItem[]) {
-    const shulker_inventory_start = 27
-    const double_chest_inventory_start = 54
 
 
-    const to_move = requests.filter( (r: any) => (r.from.shulker_slot == null) && (r.to.shulker_slot != null))
-
-
-    let updated_requests = []
-    for( let move of to_move ) {
-        // Find shulker (moving with)
-        let found = requests.find( (r: any) => 
-            ( r != move )
-            && (move.to.chest_type == r.to.chest_type)
-            && (move.to.chest == r.to.chest)
-            && (move.to.slot == r.to.slot)
-        )
-
-        if (found) {
-            let chest_inventory = await player.open(move.from.chest_type, move.from.chest)
-            const item: any = chest_inventory.find((i: types.ItemLocation) => i.location.slot === move.from.slot)
-
-            await clicks_move_item(player, move.from.slot, double_chest_inventory_start, move.count, item.count)
-
-            await player.open_shulker(found.from.chest_type, found.from.chest, found.from.slot)
-
-            await clicks_move_item(player, shulker_inventory_start, move.to.shulker_slot!, move.count, item.count)
-
-            await player.close_shulker()
-
-            // update from to the new position
-
-            updated_requests.push({
-                item: move.item,
-                to: move.to,
-                from: found.from,
-                count: move.count,
-            })
-
-        } else {
-            // "actions" has to trust "inventory" that a shulker is already there
-            let chest_inventory = await player.open(move.from.chest_type, move.from.chest)
-            const item: any = chest_inventory.find((i: types.ItemLocation) => i.location.slot === move.from.slot)
-
-            await clicks_move_item(player, move.from.slot, double_chest_inventory_start, move.count, item.count)
-
-            await player.open_shulker(move.to.chest_type, move.to.chest, move.to.slot)
-
-            await clicks_move_item(player, shulker_inventory_start, move.to.shulker_slot!, move.count, item.count)
-
-            await player.close_shulker()
-        }
-
-        
-    }
-
-
-    // requests.concat(updated_requests)
-
-
-    // return requests
-
-}
 
 function open_slot(inventory: types.ItemLocation[], item: types.MoveItem, inventory_size: number): number {
     /**
@@ -256,6 +224,8 @@ function open_slot(inventory: types.ItemLocation[], item: types.MoveItem, invent
 
 
 async function clicks_move_item(player: any, from_slot: number, to_slot: number, count: number, from_slot_count: number) {
+    console.log(from_slot, to_slot, count, from_slot_count)
+
     if (count === from_slot_count) {
         await player.lclick(from_slot);
         await player.lclick(to_slot);
@@ -300,6 +270,10 @@ export async function survey(player: any, chest_type: types.ChestType, chest: nu
     return items
 }
 
+
+function chunk_requests(arr: any[], size: number): any[][] {
+    return arr.reduce((acc, _, i) => (i % size) ? acc : [...acc, arr.slice(i, i + size)], []);
+}
 
 function shulkerContents(input: any): types.ItemLocation[] {
     /*

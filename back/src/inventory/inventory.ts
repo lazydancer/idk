@@ -38,8 +38,9 @@ export async function deposit(items: types.ItemLocation[]): Promise<types.MoveIt
 
 
 export async function list(user_id: number): Promise<{item: types.Item, count: number}[]> {
-    const inventory = await db.get_user_items(user_id)
-    return inventory
+    let inventory = await db.get_user_items(user_id)
+    let inventory_without_shulkers = inventory.filter(x => !x.item.name.endsWith("shulker_box"))
+    return inventory_without_shulkers
 }
 
 export async function item(item_id: number, user_id: number): Promise<{item: types.Item, count: number}> {

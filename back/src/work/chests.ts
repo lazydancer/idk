@@ -52,9 +52,6 @@ export function chest_to_location(chest_type: types.ChestType, chest_number: num
     const [adjustedStandLocation] = adjust_coords([stand], location, direction);
     const [adjustedChestLocation] = adjust_coords([chest], location, direction);
 
-    console.log("stand", adjustedStandLocation, "chest", adjustedChestLocation);
-
-
     return {
         stand: adjustedStandLocation,
         chest: adjustedChestLocation
